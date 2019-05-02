@@ -5,41 +5,41 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ArenaFighter
+namespace ArenaFighter.Model.Util
 {
     //Based on https://stackoverflow.com/a/42426750
-    internal static class DiceRoller
+    public static class DiceRoller
     {
         private static readonly RNGCryptoServiceProvider csp = new RNGCryptoServiceProvider();
 
-        internal static int TwentySidedDie()
+        public static int TwentySidedDie()
         {
             return Next(1, 21);
         }
 
-        internal static int TenSidedDie()
+        public static int TenSidedDie()
         {
             return Next(1, 11);
         }
 
-        internal static int EightSidedDie()
+        public static int EightSidedDie()
         {
             return Next(1, 9);
         }
 
-        internal static int SixSidedDie()
+        public static int SixSidedDie()
         {
             return Next(1, 7);
         }
 
-        internal static int FourSidedDie()
+        public static int FourSidedDie()
         {
             return Next(1, 5);
         }
 
 
 
-        internal static int Roll4d6DropLowest()
+        public static int Roll4d6DropLowest()
         {
             int sum = 0;
             int lowest = int.MaxValue;
@@ -53,7 +53,7 @@ namespace ArenaFighter
             return sum - lowest;
         }
 
-        internal static Tuple<ulong,IEnumerable<int>> RollNTimes(int n, Func<int> die_type)
+        public static Tuple<ulong,IEnumerable<int>> RollNTimes(int n, Func<int> die_type)
         {
             ulong sum = 0;
             List<int> rolls = new List<int>();
@@ -66,7 +66,7 @@ namespace ArenaFighter
             return new Tuple<ulong,IEnumerable<int>>(sum, rolls);
         }
 
-        internal static int Next(int minValue, int maxExclusiveValue)
+        public static int Next(int minValue, int maxExclusiveValue)
         {
             if (minValue >= maxExclusiveValue)
                 throw new ArgumentOutOfRangeException("minValue must be lower than maxExclusiveValue");

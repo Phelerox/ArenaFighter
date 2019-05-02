@@ -5,9 +5,11 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ArenaFighter.Character
+using ArenaFighter.Model.Util;
+
+namespace ArenaFighter.Model
 {
-    internal enum AS { //Ability Scores
+    public enum AS { //Ability Scores
         Strength,
         Dexterity,
         Constitution,
@@ -16,40 +18,39 @@ namespace ArenaFighter.Character
         Charisma
     }
 
-    internal abstract class BaseCharacter
+    public abstract class BaseCharacter
     {
         protected string[] nameCandidates = { "Joe", "Bananas" };
-
         protected Dictionary<AS, int> abilityScores = new Dictionary<AS, int>();
-           
-        internal string Name { get; }
 
-        internal int Strength
+        string Name { get; }
+
+        int Strength
         {
             get { return abilityScores[AS.Strength]; }
         }
 
-        internal int Dexterity
+        public int Dexterity
         {
             get { return abilityScores[AS.Dexterity]; }
         }
 
-        internal int Constitution
+        public int Constitution
         {
             get { return abilityScores[AS.Constitution]; }
         }
 
-        internal int Intelligence
+        public int Intelligence
         {
             get { return abilityScores[AS.Intelligence]; }
         }
 
-        internal int Wisdom
+        public int Wisdom
         {
             get { return abilityScores[AS.Wisdom]; }
         }
 
-        internal int Charisma
+        public int Charisma
         {
             get { return abilityScores[AS.Charisma]; }
         }
@@ -68,7 +69,7 @@ namespace ArenaFighter.Character
             Name = name;
         }
 
-        internal virtual IDictionary<AS, int> GenerateAbilityScores(int bonus = 0)
+        public virtual IDictionary<AS, int> GenerateAbilityScores(int bonus = 0)
         {
             foreach (AS a in Enum.GetValues(typeof(AS)))
             {
@@ -92,7 +93,7 @@ namespace ArenaFighter.Character
     }
 
 
-    internal class Player : BaseCharacter
+    public class Player : BaseCharacter
     {
         public Player(string Name) : base(Name)
         {
@@ -101,32 +102,32 @@ namespace ArenaFighter.Character
     }
 
 
-    internal class Champion : BaseCharacter
+    public class Champion : BaseCharacter
     {
-        internal override IDictionary<AS, int> GenerateAbilityScores(int bonus = 2)
+        public override IDictionary<AS, int> GenerateAbilityScores(int bonus = 2)
         {
             Console.WriteLine("Override success!");
             return base.GenerateAbilityScores(bonus);
         }
     }
 
-    internal class Gladiator : BaseCharacter
+    public class Gladiator : BaseCharacter
     {
 
     }
 
-    internal class Soldier : BaseCharacter
+    public class Soldier : BaseCharacter
     {
-        internal override IDictionary<AS, int> GenerateAbilityScores(int bonus = -2)
+        public override IDictionary<AS, int> GenerateAbilityScores(int bonus = -2)
         {
             Console.WriteLine("Override success!");
             return base.GenerateAbilityScores(bonus);
         }
     }
 
-    internal class Novice : BaseCharacter
+    public class Novice : BaseCharacter
     {
-        internal override IDictionary<AS, int> GenerateAbilityScores(int bonus = -4)
+        public override IDictionary<AS, int> GenerateAbilityScores(int bonus = -4)
         {
             Console.WriteLine("Override success!");
             return base.GenerateAbilityScores(bonus);

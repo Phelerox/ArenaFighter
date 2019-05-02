@@ -1,58 +1,43 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{1041E96B-C4F9-4EF2-A17E-E9A8133BB803}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>ArenaFighter</RootNamespace>
-    <AssemblyName>ArenaFighter</AssemblyName>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <Deterministic>true</Deterministic>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
+    <AssemblyTitle>ArenaFighter</AssemblyTitle>
+    <Product>ArenaFighter</Product>
+    <StartupObject>ArenaFighter.Program</StartupObject>
+    <Copyright />
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Xml" />
+    <PackageReference Include="System.Data.DataSetExtensions" Version="4.*" />
+    <PackageReference Include="Microsoft.CSharp" Version="4.*" />
+    <PackageReference Include="System.Net.Http" Version="4.*" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.*" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="ConsoleApp.cs" />
-    <Compile Include="Campaign.cs" />
-    <Compile Include="DiceRoller.cs" />
-    <Compile Include="Round.cs" />
-    <Compile Include="Battle.cs" />
-    <Compile Include="Character.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="App.config" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- <ItemGroup>
+    <Compile Remove="DiceRoller.cs" />
+    <Compile Remove="Battle.cs" />
+    <Compile Remove="Campaign.cs" />
+    <Compile Remove="Round.cs" />
+    <Compile Remove="ConsoleApp.cs" />
+    <Compile Remove="Character.cs" />
+    <Compile Remove="ConsoleApplicationBase/AppState.cs" />
+    <Compile Remove="ConsoleApplicationBase/CommandLibrary.cs" />
+    <Compile Remove="ConsoleApplicationBase/CommandHandler.cs" />
+    <Compile Remove="ConsoleApplicationBase/CommandClassInfo.cs" />
+    <Compile Remove="ConsoleApplicationBase/Program.cs" />
+    <Compile Remove="ConsoleApplicationBase/ConsoleCommand.cs" />
+    <Compile Remove="ConsoleApplicationBase/ConsoleFormatting.cs" />
+    <Compile Remove="Properties/AssemblyInfo.cs" />
+    <Compile Remove="ConsoleApplicationBase/Commands/Users.cs" />
+    <Compile Remove="ConsoleApplicationBase/Commands/DefaultCommands.cs" />
+    <Compile Remove="ConsoleApplicationBase/Models/SampleData.cs" />
+    <Compile Remove="ConsoleApplicationBase/Properties/Settings.Designer.cs" />
+    <Compile Remove="ConsoleApplicationBase/obj/Debug/netstandard2.0/ConsoleApplicationBase.AssemblyInfo.cs" />
+    <Compile Remove="ConsoleApplicationBase/obj/Debug/netcoreapp3.0/ConsoleApplicationBase.AssemblyInfo.cs" />
+  </ItemGroup> -->
 </Project>
