@@ -1,4 +1,5 @@
-﻿using System.Reflection.Metadata;
+﻿using System.ComponentModel;
+using System.Reflection.Metadata;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -243,7 +244,9 @@ namespace ArenaFighter.Models
 
         public virtual int AttackRoll(bool? advantage = null) {
             if (advantage == null) { //Normal roll
-                return DiceRoller.TwentySidedDie() + Proficiency + StrengthMod;
+                Weapon weapon = equipment.ContainsKey(Slot.MainHand) ? (Weapon)equipment[Slot.MainHand] : null;
+                bool finesse = weapon?.Finesse ?? false;
+                return DiceRoller.TwentySidedDie() + Proficiency + (finesse ? Math.Max(StrengthMod, DexterityMod) : StrengthMod);
             }
             if ((bool) advantage) {
                 return Math.Max(AttackRoll(), AttackRoll());
@@ -253,8 +256,10 @@ namespace ArenaFighter.Models
         }
 
         public virtual int DamageRoll(bool critical = false) {
-            Func<int> damageDie = ((Weapon)equipment[Slot.MainHand])?.DamageDie ?? DiceRoller.FourSidedDie;
-            return StrengthMod + (critical ? damageDie() + damageDie() : damageDie());
+            Weapon weapon = equipment.ContainsKey(Slot.MainHand) ? (Weapon)equipment[Slot.MainHand] : null;
+            bool finesse = weapon?.Finesse ?? false;
+            Func<int> damageDie = weapon?.DamageDie ?? DiceRoller.FourSidedDie;
+            return (finesse ? Math.Max(StrengthMod, DexterityMod) : StrengthMod) + (critical ? damageDie() + damageDie() : damageDie());
         }
 
         public override string ToString() {

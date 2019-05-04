@@ -170,6 +170,7 @@ namespace ArenaFighter.Models
         public override Slot Slot { get { return Slot.MainHand; } }
         public abstract Func<int> DamageDie { get; }
         public virtual bool TwoHanded { get { return false; } }
+        public virtual bool Finesse { get { return false; } }
     }
 
     public class ShortSword : Weapon {
