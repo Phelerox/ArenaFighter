@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ArenaFighter.Model
+namespace ArenaFighter.Models
 {
-    public class Round
+     public class Battle
     {
         
     }

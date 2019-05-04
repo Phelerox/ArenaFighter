@@ -1,4 +1,6 @@
-﻿using System.Transactions;
+﻿using System.Security.AccessControl;
+using System.Runtime.InteropServices;
+using System.Transactions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,20 +8,59 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Reflection;
 
-using ArenaFighter.ConsoleApplicationBase;
+using Humanizer;
 
-namespace ArenaFighter.View
+using ArenaFighter.ConsoleApplicationBase;
+using ArenaFighter.Presenters;
+using ArenaFighter.Models.Utils;
+
+namespace ArenaFighter.Views
 {
     class ConsoleGame : IView
     {
+        private Presenter presenter;
+        private ArenaFighter.Models.Player player;
+
+        private Menu<Genders> menuCharCreationChooseGender = new Menu<Genders>(
+            "What is your characters gender?",
+            new Dictionary<string, Tuple<string, Genders>>() {
+                ["m"] = new Tuple<string, Genders>("Male", Genders.Male),
+                ["f"] = new Tuple<string, Genders>("Female", Genders.Female),
+                ["o"] = new Tuple<string, Genders>("Other", Genders.Other),
+            }
+        );
+
+
+        //string description, Dictionary<string, Tuple<string, Func<string>>> options
+
         public ConsoleGame()
         {
+            presenter = Presenter.Instance(this);
             Console.Title = "Dungeons & Gladiators";
-
-            Run();
+            CharacterCreation();
+            GameLoop();
         }
 
-        static void Run()
+        private void GameLoop() {
+            RunDeveloperMode();
+        }
+
+        private void CharacterCreation() {;
+            ArenaFighter.Models.Race race = new ArenaFighter.Models.MountainDwarf();
+            Genders gender = menuCharCreationChooseGender.Ask();
+            string name = AskUserForString($"What is {Language.PossessiveAdjective(gender)} name? ");
+            player = presenter.CreateCharacter(name, gender, race);
+            Console.WriteLine(player);
+            
+        }
+
+        private string AskUserForString(string prompt) {
+            Console.Write(prompt);
+            return Console.ReadLine();
+        }
+
+
+        public void RunDeveloperMode()
         {
             AppState.SetState(State.RUNNING);
             while (AppState.GetState() > State.IDLE)
@@ -36,13 +77,12 @@ namespace ArenaFighter.View
                     {
                         case "help":
                         case "?":
-                        case "ayuda":
                             WriteToConsole(BuildHelpMessage());
                             break;
                         case "exit":
-                        case "salir":
-                            WriteToConsole("Closing program...");
-                            return;
+                            AppState.SetState(State.IDLE);
+                            WriteToConsole("Exiting developer mode");
+                            break;
                         default:
                             // Execute the command:
                             string result = CommandHandler.Execute(cmd);
@@ -68,7 +108,7 @@ namespace ArenaFighter.View
             }
         }
 
-        const string _readPrompt = "console> ";
+        const string _readPrompt = "developer mode> ";
         public static string ReadFromConsole(string promptMessage = "")
         {
             // Show a prompt, and get input:

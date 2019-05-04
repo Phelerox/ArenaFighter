@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
@@ -6,38 +6,17 @@
     <AssemblyTitle>ArenaFighter</AssemblyTitle>
     <Product>ArenaFighter</Product>
     <StartupObject>ArenaFighter.Program</StartupObject>
-    <Copyright />
+    <Copyright/>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="System.Data.DataSetExtensions" Version="4.*" />
-    <PackageReference Include="Microsoft.CSharp" Version="4.*" />
-    <PackageReference Include="System.Net.Http" Version="4.*" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.*" />
+    <PackageReference Include="System.Data.DataSetExtensions" Version="4.*"/>
+    <PackageReference Include="Microsoft.CSharp" Version="4.*"/>
+    <PackageReference Include="System.Net.Http" Version="4.*"/>
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.*"/>
+    <PackageReference Include="Humanizer.Core" Version="2.6.2"/>
   </ItemGroup>
-  <!-- <ItemGroup>
-    <Compile Remove="DiceRoller.cs" />
-    <Compile Remove="Battle.cs" />
-    <Compile Remove="Campaign.cs" />
-    <Compile Remove="Round.cs" />
-    <Compile Remove="ConsoleApp.cs" />
-    <Compile Remove="Character.cs" />
-    <Compile Remove="ConsoleApplicationBase/AppState.cs" />
-    <Compile Remove="ConsoleApplicationBase/CommandLibrary.cs" />
-    <Compile Remove="ConsoleApplicationBase/CommandHandler.cs" />
-    <Compile Remove="ConsoleApplicationBase/CommandClassInfo.cs" />
-    <Compile Remove="ConsoleApplicationBase/Program.cs" />
-    <Compile Remove="ConsoleApplicationBase/ConsoleCommand.cs" />
-    <Compile Remove="ConsoleApplicationBase/ConsoleFormatting.cs" />
-    <Compile Remove="Properties/AssemblyInfo.cs" />
-    <Compile Remove="ConsoleApplicationBase/Commands/Users.cs" />
-    <Compile Remove="ConsoleApplicationBase/Commands/DefaultCommands.cs" />
-    <Compile Remove="ConsoleApplicationBase/Models/SampleData.cs" />
-    <Compile Remove="ConsoleApplicationBase/Properties/Settings.Designer.cs" />
-    <Compile Remove="ConsoleApplicationBase/obj/Debug/netstandard2.0/ConsoleApplicationBase.AssemblyInfo.cs" />
-    <Compile Remove="ConsoleApplicationBase/obj/Debug/netcoreapp3.0/ConsoleApplicationBase.AssemblyInfo.cs" />
-  </ItemGroup> -->
 </Project>

@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ArenaFighter.Model.Util
+namespace ArenaFighter.Models.Utils
 {
     //Based on https://stackoverflow.com/a/42426750
     public static class DiceRoller
@@ -15,6 +15,11 @@ namespace ArenaFighter.Model.Util
         public static int TwentySidedDie()
         {
             return Next(1, 21);
+        }
+
+        public static int TwelveSidedDie()
+        {
+            return Next(1, 13);
         }
 
         public static int TenSidedDie()

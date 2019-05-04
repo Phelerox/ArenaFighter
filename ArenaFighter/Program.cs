@@ -1,4 +1,4 @@
-using ArenaFighter.View;
+using ArenaFighter.Views;
 
 namespace ArenaFighter
 {

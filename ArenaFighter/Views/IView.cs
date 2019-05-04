@@ -1,5 +1,5 @@
 using System.Runtime.InteropServices.ComTypes;
-namespace ArenaFighter.View
+namespace ArenaFighter.Views
 {
     public interface IView
     {
