@@ -12,7 +12,7 @@ namespace ArenaFighter.Models.Utils
     public static class DiceRoller
     {
         private static readonly RNGCryptoServiceProvider csp = new RNGCryptoServiceProvider();
-        public static readonly Dictionary<Func<int>,string> dieNames = new Dictionary<Func<int>, string>() {
+        public static readonly Dictionary<Func<bool,int>,string> dieNames = new Dictionary<Func<bool,int>, string>() {
             [CoinFlip] = "1d2",
             [ThreeSidedDie] = "1d3",
             [FourSidedDie] = "1d4",
@@ -27,72 +27,80 @@ namespace ArenaFighter.Models.Utils
             [TwoDSix] = "2d6",
         };
         
-        public static Func<int>[] dieSizes = new Func<int>[] {CoinFlip, ThreeSidedDie, FourSidedDie, SixSidedDie, EightSidedDie, TenSidedDie, TwelveSidedDie};
-        public static Func<int> enlargeDie(Func<int> die) {
-            int i = Array.FindIndex<Func<int>>(dieSizes, d => d.Equals(die));
+        public static Func<bool,int>[] dieSizes = new Func<bool,int>[] {CoinFlip, ThreeSidedDie, FourSidedDie, SixSidedDie, EightSidedDie, TenSidedDie, TwelveSidedDie};
+        public static Func<bool,int> enlargeDie(Func<bool,int> die) {
+            int i = Array.FindIndex<Func<bool,int>>(dieSizes, d => d.Equals(die));
             if (i == -1 || i == (dieSizes.Length - 1)) return die;
             return dieSizes[i + 1];
         }
-        public static Func<int> shrinkDie(Func<int> die) {
-            int i = Array.FindIndex<Func<int>>(dieSizes, d => d.Equals(die));
+        public static Func<bool,int> shrinkDie(Func<bool,int> die) {
+            int i = Array.FindIndex<Func<bool,int>>(dieSizes, d => d.Equals(die));
             if (i == -1 || i == 0) return die;
             return dieSizes[i - 1];
         }
 
-        public static int TwentySidedDie()
+        public static int TwentySidedDie(bool rollMax = false)
         {
+            if (rollMax) return 20;
             return Next(1, 21);
         }
 
-        public static int TwelveSidedDie()
+        public static int TwelveSidedDie(bool rollMax = false)
         {
+            if (rollMax) return 12;
             return Next(1, 13);
         }
 
-        public static int TenSidedDie()
+        public static int TenSidedDie(bool rollMax = false)
         {
+            if (rollMax) return 10;
             return Next(1, 11);
         }
 
-        public static int EightSidedDie()
+        public static int EightSidedDie(bool rollMax = false)
         {
+            if (rollMax) return 8;
             return Next(1, 9);
         }
 
-        public static int SixSidedDie()
+        public static int SixSidedDie(bool rollMax = false)
         {
+            if (rollMax) return 6;
             return Next(1, 7);
         }
 
-        public static int FourSidedDie()
+        public static int FourSidedDie(bool rollMax = false)
         {
+            if (rollMax) return 4;
             return Next(1, 5);
         }
 
-        public static int ThreeSidedDie()
+        public static int ThreeSidedDie(bool rollMax = false)
         {
+            if (rollMax) return 3;
             return Next(1, 4);
         }
 
-        public static int CoinFlip()
+        public static int CoinFlip(bool rollMax = false)
         {
-            return Next(1, 2);
+            if (rollMax) return 2;
+            return Next(1, 3);
         }
 
-        public static int TwoDSix() {
-            return SixSidedDie() + SixSidedDie();
+        public static int TwoDSix(bool rollMax = false) {
+            return SixSidedDie(rollMax) + SixSidedDie(rollMax);
         }
 
-        public static int TwoDFour() {
-            return FourSidedDie() + FourSidedDie();
+        public static int TwoDFour(bool rollMax = false) {
+            return FourSidedDie(rollMax) + FourSidedDie(rollMax);
         }
 
-        public static int TwoDThree() {
-            return ThreeSidedDie() + ThreeSidedDie();
+        public static int TwoDThree(bool rollMax = false) {
+            return ThreeSidedDie(rollMax) + ThreeSidedDie(rollMax);
         }
 
-        public static int TwoDTwo() {
-            return CoinFlip() + CoinFlip();
+        public static int TwoDTwo(bool rollMax = false) {
+            return CoinFlip(rollMax) + CoinFlip(rollMax);
         }
 
 
@@ -113,13 +121,13 @@ namespace ArenaFighter.Models.Utils
             return sum - lowest;
         }
 
-        public static Tuple<ulong,IEnumerable<int>> RollNTimes(int n, Func<int> die_type)
+        public static Tuple<ulong,IEnumerable<int>> RollNTimes(int n, Func<bool,int> die_type)
         {
             ulong sum = 0;
             List<int> rolls = new List<int>();
             for (int i = 0;i<n;i++)
             {
-                int roll = die_type();
+                int roll = die_type(false);
                 sum += (ulong) roll;
                 rolls.Add(roll);
             }

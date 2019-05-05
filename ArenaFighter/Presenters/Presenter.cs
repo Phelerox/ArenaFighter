@@ -34,6 +34,8 @@ namespace ArenaFighter.Presenters
 
         private static IView View = null;
 
+        public Reflection reflection;
+
         public GameStage CurrentStage { get; }
 
         private Action nextRequiredAction = Action.CreateCharacter;
@@ -53,7 +55,7 @@ namespace ArenaFighter.Presenters
 
         private Presenter()
         {
-            
+            reflection = Reflection.Instance();
         }
 
         public IEnumerable<Action> ValidActions() {

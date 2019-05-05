@@ -7,7 +7,7 @@ namespace ArenaFighter.Models
 {
     public abstract class Modifier
     {
-        public virtual Dictionary<Attribute, int> Modifiers { get { return null; } }
+        public virtual Dictionary<Attribute, int> Modifiers { get { return new Dictionary<Attribute, int>(); } }
         public virtual int GetModifierFor(Attribute attribute) {
             if (Modifiers.ContainsKey(attribute)) {
                 return Modifiers[attribute];

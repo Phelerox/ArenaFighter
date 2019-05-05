@@ -64,7 +64,7 @@ namespace ArenaFighter.Models
                 Level += 1;
                 var attributeIncreases = new Dictionary<Attribute, int>();
                 attributeIncreases[(Attribute) (DiceRoller.SixSidedDie() - 1)] = 1;
-                attributeIncreases[Attribute.MaxHitPoints] = HitDieType() + ConstitutionMod;
+                attributeIncreases[Attribute.MaxHitPoints] = HitDieType(false) + ConstitutionMod;
                 foreach (Attribute a in attributeIncreases.Keys) {
                     attributes[a] += attributeIncreases[a];
                 }
@@ -82,7 +82,7 @@ namespace ArenaFighter.Models
 
         public int Level { get; private set; }
 
-        public Func<int> HitDieType { get { return DiceRoller.TenSidedDie; } }
+        public Func<bool,int> HitDieType { get { return DiceRoller.TenSidedDie; } }
 
         public int Proficiency {
             get {
@@ -135,6 +135,12 @@ namespace ArenaFighter.Models
             }
         }
 
+        public void EquipRandomEquipment() {
+            foreach (Equipment e in Reflection.instance.GenerateRandomEquipment(0).Values) {
+                equipment[e.Slot] = e;
+            }
+        }
+
         public IEnumerable<Tuple<int, string>> ListAllModifiersFor(Attribute attribute) {
             var bonus = new List<Tuple<int, string>>();
             foreach (Modifier m in Modifiers) {
@@ -153,7 +159,6 @@ namespace ArenaFighter.Models
         public int ToAbilityScoreModifier(int score) {
             return (int) Math.Floor(((double) score - 10) / 2);
         }
-
 
         public int Strength {
             get { return attributes[Attribute.Strength] + AddAllModifiers(Attribute.Strength); }
@@ -231,6 +236,7 @@ namespace ArenaFighter.Models
                 Name = nameCandidates[Gender].ElementAt(DiceRoller.Next(0, nameCandidates[Gender].Count));
             }
             GenerateAttributes();
+            EquipRandomEquipment();
             ageInDaysAtStart = (ulong) DiceRoller.Next(365*15,365*70);
         }
 
@@ -245,32 +251,35 @@ namespace ArenaFighter.Models
             return;
         }
 
-        public virtual int AttackRoll(bool? advantage = null) {
+        public virtual int AttackRoll(bool? advantage = null, bool rollMax = false) {
             if (advantage == null) { //Normal roll
                 Weapon weapon = equipment.ContainsKey(Slot.MainHand) ? (Weapon)equipment[Slot.MainHand] : null;
                 bool finesse = weapon?.Finesse ?? false;
-                return DiceRoller.TwentySidedDie() + Proficiency + (finesse ? Math.Max(StrengthMod, DexterityMod) : StrengthMod);
+                return DiceRoller.TwentySidedDie(rollMax) + Proficiency + (finesse ? Math.Max(StrengthMod, DexterityMod) : StrengthMod);
             }
             if ((bool) advantage) {
-                return Math.Max(AttackRoll(), AttackRoll());
+                return Math.Max(AttackRoll(rollMax), AttackRoll(rollMax));
             } else {
-                return Math.Min(AttackRoll(), AttackRoll());
+                return Math.Min(AttackRoll(rollMax), AttackRoll(rollMax));
             }
         }
 
-        public virtual int DamageRoll(bool critical = false) {
+        public virtual int DamageRoll(bool critical = false, bool rollMax = false) {
             Weapon weapon = equipment.ContainsKey(Slot.MainHand) ? (Weapon)equipment[Slot.MainHand] : null;
             bool finesse = weapon?.Finesse ?? false;
             bool versatile = weapon?.Versatile ?? false;
-            Func<int> damageDie = (versatile && (Equipment.ContainsKey(Slot.OffHand) && Equipment[Slot.OffHand] != null) ? DiceRoller.enlargeDie(weapon?.DamageDie) : weapon?.DamageDie) ?? DiceRoller.FourSidedDie;
-            return (finesse ? Math.Max(StrengthMod, DexterityMod) : StrengthMod) + (critical ? damageDie() + damageDie() : damageDie());
+            Func<bool,int> damageDie = (versatile && (Equipment.ContainsKey(Slot.OffHand) && Equipment[Slot.OffHand] != null) ? DiceRoller.enlargeDie(weapon?.DamageDie) : weapon?.DamageDie) ?? DiceRoller.FourSidedDie;
+            return (finesse ? Math.Max(StrengthMod, DexterityMod) : StrengthMod) + (critical ? damageDie(rollMax) + damageDie(rollMax) : damageDie(rollMax));
         }
 
         public override string ToString() {
             string description = Name + "\n";
             Tuple<int, int> ageYearsAndDays = Age;
             description += $"{GenderString} {Race.ToString()} aged {ageYearsAndDays.Item1} years and {ageYearsAndDays.Item2} days.\n";
+            ////TODO: gold
             if (attributes.Count > 0) {
+                var attributesToDisplay = new Dictionary<Attribute,int> (attributes);
+                attributesToDisplay[Attribute.ArmorClass] = ArmorClass;
                 foreach (Attribute a in attributes.Keys) {
                     int totalModifier = AddAllModifiers(a);
                     description += $"  {a}: {attributes[a] + totalModifier}";
@@ -281,19 +290,25 @@ namespace ArenaFighter.Models
             }
             if (Modifiers.Count > 0) {
                 IList<Modifier> alreadyProcessed = new List<Modifier>();
+                alreadyProcessed.Add(Race);
                 if (Equipment.Count > 0) {
-                foreach (Slot s in Enum.GetValues(typeof(Slot))) {
-                    description += $"{s.ToString().Humanize(LetterCasing.Title)}: ";
-                    Equipment e = null;
-                    if (Equipment.ContainsKey(s) && ((e = Equipment[s]) != null)) {
-                        alreadyProcessed.Add(e);
-                        description += " " + e.ToString();
-                    } else if (s == Slot.OffHand && Equipment.ContainsKey(Slot.MainHand) && ((Weapon)Equipment[Slot.MainHand]).TwoHanded) {
-                        description += $" holding {Equipment[Slot.MainHand].Name}";
+                    foreach (Slot s in Enum.GetValues(typeof(Slot))) {
+                        description += $"{s.ToString().Humanize(LetterCasing.Title)}: ";
+                        if (Equipment.ContainsKey(s) && (Equipment[s] != null)) {
+                            Equipment e = Equipment[s];
+                            alreadyProcessed.Add(e);
+                            description += $" {e}";
+                        } else if (s == Slot.OffHand && Equipment.ContainsKey(Slot.MainHand) && ((Weapon)Equipment[Slot.MainHand]).TwoHanded) {
+                            description += $" holding {Equipment[Slot.MainHand].Name}";
+                        }
+                        else description += " empty";
+                        description += "\n";
                     }
-                    else description += " empty";
                 }
-            }
+                foreach (Modifier m in Modifiers) {
+                    if (alreadyProcessed.Contains(m)) continue;
+                    description += $"{m}\n";
+                }
             }
             return description;
         }

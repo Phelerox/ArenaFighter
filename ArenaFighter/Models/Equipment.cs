@@ -172,59 +172,59 @@ namespace ArenaFighter.Models
 
     public abstract class Weapon : Equipment {
         public override Slot Slot { get { return Slot.MainHand; } }
-        public abstract Func<int> DamageDie { get; }
+        public abstract Func<bool,int> DamageDie { get; }
         public virtual string DamageDieSize { get { return DiceRoller.dieNames[DamageDie]; } }
         public virtual bool TwoHanded { get { return false; } }
         public virtual bool Finesse { get { return false; } }
         public virtual bool Versatile { get { return false; } }
 
         public override string ToString() {
-            return base.ToString() + $" | Damage: {DamageDieSize}{(TwoHanded ? " | Two-handed" : "| One-handed")}{(Finesse ? " | Finesse" : "")}{(Versatile ? " | Versatile" : "")} | {Value} gp";
+            return base.ToString() + $" | Damage: {DamageDieSize}{(TwoHanded ? " | Two-handed" : " | One-handed")}{(Finesse ? " | Finesse" : "")}{(Versatile ? " | Versatile" : "")} | {Value} gp";
         }
     }
 
     public class Club : Weapon {
         public override bool Versatile { get { return true; } }
         public override int Value { get { return 2*5; } }
-        public override Func<int> DamageDie {
+        public override Func<bool,int> DamageDie {
             get { return DiceRoller.FourSidedDie; } }
     }
 
     public class Dagger : Weapon {
         public override bool Finesse { get { return true; } }
         public override int Value { get { return 3*5; } }
-        public override Func<int> DamageDie {
+        public override Func<bool,int> DamageDie {
             get { return DiceRoller.FourSidedDie; } }
     }
     public class Spear : Weapon {
         public override bool Versatile { get { return true; } }
         public override int Value { get { return 12*5; } }
-        public override Func<int> DamageDie {
+        public override Func<bool,int> DamageDie {
             get { return DiceRoller.SixSidedDie; } }
     }
     public class Scimitar : Weapon {
         public override bool Finesse { get { return true; } }
         public override int Value { get { return 30*5; } }
-        public override Func<int> DamageDie {
+        public override Func<bool,int> DamageDie {
             get { return DiceRoller.SixSidedDie; } }
     }
     public class Battleaxe : Weapon {
         public override bool Finesse { get { return true; } }
         public override int Value { get { return 9*5; } }
-        public override Func<int> DamageDie {
+        public override Func<bool,int> DamageDie {
             get { return DiceRoller.EightSidedDie; } }
     }
 
     public class GreatAxe : Weapon {
         public override int Value { get { return 150*3*5; } }
         public override bool TwoHanded { get { return true; } }
-        public override Func<int> DamageDie {
+        public override Func<bool,int> DamageDie {
             get { return DiceRoller.TwelveSidedDie; } }
     }
     public class GreatSword : Weapon {
         public override int Value { get { return 350*3*5; } }
         public override bool TwoHanded { get { return true; } }
-        public override Func<int> DamageDie {
+        public override Func<bool,int> DamageDie {
             get { return DiceRoller.TwoDSix; } }
     }
 }
