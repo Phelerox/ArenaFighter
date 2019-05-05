@@ -26,7 +26,7 @@ namespace ArenaFighter.Views
             new Dictionary<string, Tuple<string, Genders>>() {
                 ["m"] = new Tuple<string, Genders>("Male", Genders.Male),
                 ["f"] = new Tuple<string, Genders>("Female", Genders.Female),
-                ["o"] = new Tuple<string, Genders>("Other", Genders.Other),
+                ["o"] = new Tuple<string, Genders>("Non-Binary", Genders.Non_Binary),
             }
         );
 

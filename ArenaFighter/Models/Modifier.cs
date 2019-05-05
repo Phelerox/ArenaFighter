@@ -16,8 +16,24 @@ namespace ArenaFighter.Models
             }
         }
 
-        public string ToString() {
-            return this.GetType().Name.Humanize(LetterCasing.Title);
+        public virtual string Name { get { return this.GetType().Name.Humanize(LetterCasing.Title); } }
+
+        public override string ToString() {
+            string description = Name;
+            if (Modifiers.Count > 0) {
+                description += " (";
+                bool firstMod = true;
+                foreach (Attribute a in Modifiers.Keys) {
+                    int mod = Modifiers[a];
+                    if (mod == 0) continue;
+                    if (!firstMod) description += " ";
+                    else firstMod = false;
+                    if (mod > 0) description += $"{a}: +{mod}";
+                    else if (mod < 0) description += description += $"{a}: {mod}";
+                }
+                description += ")";
+            }
+            return description;
         }
     }
 

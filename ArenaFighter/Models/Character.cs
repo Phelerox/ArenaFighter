@@ -7,6 +7,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
+using Humanizer;
+
 using ArenaFighter.Models.Utils;
 
 namespace ArenaFighter.Models
@@ -30,9 +32,9 @@ namespace ArenaFighter.Models
     {
         protected Dictionary<Genders, List<string>> nameCandidates = new Dictionary<Genders, List<string>>
         {
-            [Genders.Male] = new List<string>() {"Joe", "Blah"},
-            [Genders.Female] = new List<string>() {"Anna", "Blahh"},
-            [Genders.Other] = new List<string>() {"Kim"},
+            [Genders.Male] = new List<string>() {"Joe", "Tormund"},
+            [Genders.Female] = new List<string>() {"Anna", "Brienne"},
+            [Genders.Non_Binary] = new List<string>() {"Kim"},
         };
         protected Dictionary<Attribute, int> attributes = new Dictionary<Attribute, int>();
         protected Dictionary<Slot, Equipment> equipment = new Dictionary<Slot, Equipment>();
@@ -99,11 +101,12 @@ namespace ArenaFighter.Models
 
         public string Name { get; set; }
         public Genders Gender { get; set; }
+        public string GenderString { get { return Gender.ToFriendlyString(); } }
 
         public IList<Modifier> Modifiers {
             get {
                 var list = new List<Modifier>(otherModifiers) {(Modifier)Race};
-                list.AddRange(Equipment);
+                list.AddRange(Equipment.Values);
                 return list;}
         }
 
@@ -116,17 +119,17 @@ namespace ArenaFighter.Models
             return total;
         }
 
-        public IEnumerable<Equipment> Equipment {
+        public IDictionary<Slot, Equipment> Equipment {
             get {
-                var wearing = new List<Equipment>();
+                var wearing = new Dictionary<Slot, Equipment>();
                 Weapon mainHand = null;
                 Equipment offHand = null;
                 foreach (Equipment e in equipment.Values) {
-                    if (e.Slot == Slot.OffHand) offHand = e; else wearing.Add(e);
+                    if (e.Slot == Slot.OffHand) offHand = e; else wearing[e.Slot] = e;
                     if (e.Slot == Slot.MainHand) mainHand = (Weapon)e;
                 }
                 if ((mainHand == null || (mainHand.TwoHanded == false)) && offHand != null) {
-                        wearing.Add(offHand);
+                        wearing[Slot.OffHand] = offHand;
                     }
                 return wearing;
             }
@@ -219,7 +222,7 @@ namespace ArenaFighter.Models
             if (gender != null) {
                 Gender = (Genders) gender;
             } else {
-                Gender = (Genders) DiceRoller.Next(0,(int) Genders.Other);
+                Gender = (Genders) DiceRoller.Next(0,(int) Genders.Non_Binary);
             }
             if (name != null) {
                 Name = name;
@@ -258,24 +261,41 @@ namespace ArenaFighter.Models
         public virtual int DamageRoll(bool critical = false) {
             Weapon weapon = equipment.ContainsKey(Slot.MainHand) ? (Weapon)equipment[Slot.MainHand] : null;
             bool finesse = weapon?.Finesse ?? false;
-            Func<int> damageDie = weapon?.DamageDie ?? DiceRoller.FourSidedDie;
+            bool versatile = weapon?.Versatile ?? false;
+            Func<int> damageDie = (versatile && (Equipment.ContainsKey(Slot.OffHand) && Equipment[Slot.OffHand] != null) ? DiceRoller.enlargeDie(weapon?.DamageDie) : weapon?.DamageDie) ?? DiceRoller.FourSidedDie;
             return (finesse ? Math.Max(StrengthMod, DexterityMod) : StrengthMod) + (critical ? damageDie() + damageDie() : damageDie());
         }
 
         public override string ToString() {
-            string str = Name + "\n";
+            string description = Name + "\n";
             Tuple<int, int> ageYearsAndDays = Age;
-            str += $"{Race.ToString()} {Gender}, aged {ageYearsAndDays.Item1} years and {ageYearsAndDays.Item2} days.\n";
+            description += $"{GenderString} {Race.ToString()} aged {ageYearsAndDays.Item1} years and {ageYearsAndDays.Item2} days.\n";
             if (attributes.Count > 0) {
                 foreach (Attribute a in attributes.Keys) {
                     int totalModifier = AddAllModifiers(a);
-                    str += $"  {a}: {attributes[a] + totalModifier}";
-                    if (totalModifier > 0) str += $" ({attributes[a]}+{totalModifier})";
-                    else if (totalModifier < 0) str += $" ({attributes[a]}-{totalModifier})";
-                    str += "\n";
+                    description += $"  {a}: {attributes[a] + totalModifier}";
+                    if (totalModifier > 0) description += $" ({attributes[a]}+{totalModifier})";
+                    else if (totalModifier < 0) description += $" ({attributes[a]}-{totalModifier})";
+                    description += "\n";
                 }
             }
-            return str;
+            if (Modifiers.Count > 0) {
+                IList<Modifier> alreadyProcessed = new List<Modifier>();
+                if (Equipment.Count > 0) {
+                foreach (Slot s in Enum.GetValues(typeof(Slot))) {
+                    description += $"{s.ToString().Humanize(LetterCasing.Title)}: ";
+                    Equipment e = null;
+                    if (Equipment.ContainsKey(s) && ((e = Equipment[s]) != null)) {
+                        alreadyProcessed.Add(e);
+                        description += " " + e.ToString();
+                    } else if (s == Slot.OffHand && Equipment.ContainsKey(Slot.MainHand) && ((Weapon)Equipment[Slot.MainHand]).TwoHanded) {
+                        description += $" holding {Equipment[Slot.MainHand].Name}";
+                    }
+                    else description += " empty";
+                }
+            }
+            }
+            return description;
         }
     }
 

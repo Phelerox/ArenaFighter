@@ -1,11 +1,19 @@
 using System.Collections.Generic;
 
+using Humanizer;
+
 namespace ArenaFighter.Models.Utils
 {
     public enum Genders {
         Male,
         Female,
-        Other
+        Non_Binary
+    }
+
+    public static class GenderExtensions {
+        public static string ToFriendlyString(this Genders g) {
+            return g.ToString().Hyphenate();
+        }
     }
 
     public static class Language
@@ -13,25 +21,25 @@ namespace ArenaFighter.Models.Utils
         private static Dictionary<Genders, string> subjectPronouns = new Dictionary<Genders, string>() {
             [Genders.Male] = "he",
             [Genders.Female] = "she",
-            [Genders.Other] = "they"
+            [Genders.Non_Binary] = "they"
         };
 
         private static Dictionary<Genders, string> objectPronouns = new Dictionary<Genders, string>() {
             [Genders.Male] = "him",
             [Genders.Female] = "her",
-            [Genders.Other] = "them"
+            [Genders.Non_Binary] = "them"
         };
 
         private static Dictionary<Genders, string> possessiveAdjectives = new Dictionary<Genders, string>() {
             [Genders.Male] = "his",
             [Genders.Female] = "her",
-            [Genders.Other] = "their"
+            [Genders.Non_Binary] = "their"
         };
 
         private static Dictionary<Genders, string> possessivePronouns = new Dictionary<Genders, string>() {
             [Genders.Male] = "his",
             [Genders.Female] = "hers",
-            [Genders.Other] = "theirs"
+            [Genders.Non_Binary] = "theirs"
         };
 
         public static string SubjectPronoun(BaseCharacter character) {

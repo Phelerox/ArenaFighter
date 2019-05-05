@@ -1,4 +1,5 @@
-﻿using System;
+﻿using System.IO;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
@@ -11,6 +12,32 @@ namespace ArenaFighter.Models.Utils
     public static class DiceRoller
     {
         private static readonly RNGCryptoServiceProvider csp = new RNGCryptoServiceProvider();
+        public static readonly Dictionary<Func<int>,string> dieNames = new Dictionary<Func<int>, string>() {
+            [CoinFlip] = "1d2",
+            [ThreeSidedDie] = "1d3",
+            [FourSidedDie] = "1d4",
+            [SixSidedDie] = "1d6",
+            [EightSidedDie] = "1d8",
+            [TenSidedDie] = "1d10",
+            [TwelveSidedDie] = "1d12",
+            [TwentySidedDie] = "1d20",
+            [TwoDTwo] = "2d2",
+            [TwoDThree] = "2d3",
+            [TwoDFour] = "2d4",
+            [TwoDSix] = "2d6",
+        };
+        
+        public static Func<int>[] dieSizes = new Func<int>[] {CoinFlip, ThreeSidedDie, FourSidedDie, SixSidedDie, EightSidedDie, TenSidedDie, TwelveSidedDie};
+        public static Func<int> enlargeDie(Func<int> die) {
+            int i = Array.FindIndex<Func<int>>(dieSizes, d => d.Equals(die));
+            if (i == -1 || i == (dieSizes.Length - 1)) return die;
+            return dieSizes[i + 1];
+        }
+        public static Func<int> shrinkDie(Func<int> die) {
+            int i = Array.FindIndex<Func<int>>(dieSizes, d => d.Equals(die));
+            if (i == -1 || i == 0) return die;
+            return dieSizes[i - 1];
+        }
 
         public static int TwentySidedDie()
         {
@@ -41,6 +68,34 @@ namespace ArenaFighter.Models.Utils
         {
             return Next(1, 5);
         }
+
+        public static int ThreeSidedDie()
+        {
+            return Next(1, 4);
+        }
+
+        public static int CoinFlip()
+        {
+            return Next(1, 2);
+        }
+
+        public static int TwoDSix() {
+            return SixSidedDie() + SixSidedDie();
+        }
+
+        public static int TwoDFour() {
+            return FourSidedDie() + FourSidedDie();
+        }
+
+        public static int TwoDThree() {
+            return ThreeSidedDie() + ThreeSidedDie();
+        }
+
+        public static int TwoDTwo() {
+            return CoinFlip() + CoinFlip();
+        }
+
+
 
 
 
