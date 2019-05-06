@@ -1,4 +1,6 @@
-﻿using System.ComponentModel;
+﻿using System.Threading;
+using System.Runtime.InteropServices.ComTypes;
+using System.ComponentModel;
 using System.Reflection.Metadata;
 using System;
 using System.Collections.Generic;
@@ -135,6 +137,8 @@ namespace ArenaFighter.Models
             }
         }
 
+        public Weapon Weapon { get { return (Weapon) equipment[Slot.MainHand]; } }
+
         public void EquipRandomEquipment() {
             foreach (Equipment e in Reflection.instance.GenerateRandomEquipment(0).Values) {
                 equipment[e.Slot] = e;
@@ -268,8 +272,32 @@ namespace ArenaFighter.Models
             Weapon weapon = equipment.ContainsKey(Slot.MainHand) ? (Weapon)equipment[Slot.MainHand] : null;
             bool finesse = weapon?.Finesse ?? false;
             bool versatile = weapon?.Versatile ?? false;
-            Func<bool,int> damageDie = (versatile && (Equipment.ContainsKey(Slot.OffHand) && Equipment[Slot.OffHand] != null) ? DiceRoller.enlargeDie(weapon?.DamageDie) : weapon?.DamageDie) ?? DiceRoller.FourSidedDie;
+            Func<bool,int> damageDie = ((versatile && (Equipment.ContainsKey(Slot.OffHand) && Equipment[Slot.OffHand] != null)
+                ? DiceRoller.enlargeDie(weapon?.DamageDie) : weapon?.DamageDie) ?? DiceRoller.FourSidedDie);
             return (finesse ? Math.Max(StrengthMod, DexterityMod) : StrengthMod) + (critical ? damageDie(rollMax) + damageDie(rollMax) : damageDie(rollMax));
+        }
+
+        public double PowerEstimate { get { return powerHeuristic(); } }
+
+        protected virtual double powerHeuristic() {
+            double averageAttackRoll = AttackRoll(rollMax: true) - DiceRoller.averageRoll[DiceRoller.TwentySidedDie];
+            double averageDamage = DamageRoll(rollMax: true) - DiceRoller.averageRoll[Weapon.DamageDie];
+            double defenseSkill = ArmorClass;
+            double health = MaxHitPoints;
+            return averageAttackRoll + averageDamage + defenseSkill + health; ////TODO: weigh them appropriately
+        }
+
+        protected virtual double TestRelativePower(BaseCharacter enemy, int simulations) {
+            //SimulateFight x simulations times
+            return 0.0; ///TODO:
+        }
+
+        protected virtual Tuple<double,int,int> SimulateFight(BaseCharacter enemy) {
+            double percentWon = 0.0;
+            int averageHealthLeft = 0;
+            int enemyAverageHealthLeft = 0;
+            //TODO: Fight
+            return Tuple.Create(percentWon, averageHealthLeft, enemyAverageHealthLeft);
         }
 
         public override string ToString() {

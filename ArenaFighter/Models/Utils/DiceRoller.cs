@@ -26,6 +26,20 @@ namespace ArenaFighter.Models.Utils
             [TwoDFour] = "2d4",
             [TwoDSix] = "2d6",
         };
+        public static readonly Dictionary<Func<bool,int>,double> averageRoll = new Dictionary<Func<bool,int>, double>() {
+            [CoinFlip] = 1.5,
+            [ThreeSidedDie] = 2.0,
+            [FourSidedDie] = 2.5,
+            [SixSidedDie] = 3.5,
+            [EightSidedDie] = 4.5,
+            [TenSidedDie] = 5.5,
+            [TwelveSidedDie] = 6.5,
+            [TwentySidedDie] = 10.5,
+            [TwoDTwo] = 3.0,
+            [TwoDThree] = 4.0,
+            [TwoDFour] = 5.0,
+            [TwoDSix] = 7.0,
+        };
         
         public static Func<bool,int>[] dieSizes = new Func<bool,int>[] {CoinFlip, ThreeSidedDie, FourSidedDie, SixSidedDie, EightSidedDie, TenSidedDie, TwelveSidedDie};
         public static Func<bool,int> enlargeDie(Func<bool,int> die) {
