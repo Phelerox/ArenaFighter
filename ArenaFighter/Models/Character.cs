@@ -114,8 +114,14 @@ namespace ArenaFighter.Models
 
         public int AddAllModifiers(Attribute attribute) {
             int total = 0;
+            ISet<Modifier> alreadyProcessed = new HashSet<Modifier>();
             foreach (Modifier m in Modifiers) {
                 if (m == null) continue;
+                else if (alreadyProcessed.Contains(m)) {
+                    Console.WriteLine($"Duplicate modifier! {m}");
+                    continue;
+                }
+                alreadyProcessed.Add(m);
                 total += m.GetModifierFor(attribute);
             }
             return total;
@@ -144,6 +150,11 @@ namespace ArenaFighter.Models
                 equipment[e.Slot] = e;
             }
         }
+        
+        public bool EquipItem(Equipment eq) {
+            equipment[eq.Slot] = eq;
+            return true;//TODO: Check shield/2H cases
+        }
 
         public IEnumerable<Tuple<int, string>> ListAllModifiersFor(Attribute attribute) {
             var bonus = new List<Tuple<int, string>>();
@@ -157,7 +168,11 @@ namespace ArenaFighter.Models
         }
 
         public int ArmorClass {
-            get { return 10+DexterityMod+AddAllModifiers(Attribute.ArmorClass);} //temporarily use Monk's Unarmored Defense for this
+            get { return ArmorClassFromArmor + AddAllModifiers(Attribute.ArmorClass);}
+        }
+
+        public int ArmorClassFromArmor {
+            get { return ((Armor)Equipment[Slot.Armor]).ArmorClass + Math.Min(DexterityMod, ((Armor)Equipment[Slot.Armor]).MaxDexBonus); }
         }
 
         public int ToAbilityScoreModifier(int score) {
@@ -250,7 +265,7 @@ namespace ArenaFighter.Models
                 attributes[(Attribute) a] = DiceRoller.Roll4d6DropLowest() + bonus;
             }
 
-            attributes[Attribute.MaxHitPoints] = 10 + ConstitutionMod;
+            attributes[Attribute.MaxHitPoints] = HitDieType(true) + HitDieType(false) + ConstitutionMod;
             attributes[Attribute.CurHitPoints] = MaxHitPoints;
             return;
         }
@@ -259,12 +274,18 @@ namespace ArenaFighter.Models
             if (advantage == null) { //Normal roll
                 Weapon weapon = equipment.ContainsKey(Slot.MainHand) ? (Weapon)equipment[Slot.MainHand] : null;
                 bool finesse = weapon?.Finesse ?? false;
-                return DiceRoller.TwentySidedDie(rollMax) + Proficiency + (finesse ? Math.Max(StrengthMod, DexterityMod) : StrengthMod);
+                int roll = DiceRoller.TwentySidedDie(rollMax: rollMax);
+                if (roll == 20 && !rollMax) {
+                    return Int32.MaxValue;
+                } else if (roll == 1) {
+                    return Int32.MinValue;
+                }
+                return roll + Proficiency + (finesse ? Math.Max(StrengthMod, DexterityMod) : StrengthMod);
             }
             if ((bool) advantage) {
-                return Math.Max(AttackRoll(rollMax), AttackRoll(rollMax));
+                return Math.Max(AttackRoll(rollMax: rollMax), AttackRoll(rollMax: rollMax));
             } else {
-                return Math.Min(AttackRoll(rollMax), AttackRoll(rollMax));
+                return Math.Min(AttackRoll(rollMax: rollMax), AttackRoll(rollMax: rollMax));
             }
         }
 
@@ -279,20 +300,51 @@ namespace ArenaFighter.Models
 
         public double PowerEstimate { get { return powerHeuristic(); } }
 
-        protected virtual double powerHeuristic() {
+        protected virtual double powerHeuristic() { //Scrapped in favor of Calculate Relative Power
+            double imaginedTargetAC = 16;
             double averageAttackRoll = AttackRoll(rollMax: true) - DiceRoller.averageRoll[DiceRoller.TwentySidedDie];
-            double averageDamage = DamageRoll(rollMax: true) - DiceRoller.averageRoll[Weapon.DamageDie];
+            double hitChance = (21 - (imaginedTargetAC - (AttackRoll(rollMax: true) - 20))) / 20;
+            Console.WriteLine($"+hit: {averageAttackRoll - 9.5}) gives a hitchance of {hitChance} against AC {imaginedTargetAC}");
+            double averageDamage = DamageRoll(rollMax: true) - Weapon.DamageDie(true) + DiceRoller.averageRoll[Weapon.DamageDie];
+            double expectedDamage = hitChance * averageDamage;
             double defenseSkill = ArmorClass;
             double health = MaxHitPoints;
-            return averageAttackRoll + averageDamage + defenseSkill + health; ////TODO: weigh them appropriately
+            
+            return averageAttackRoll + averageDamage + defenseSkill *3 + health / 6.0; ////TODO: weigh them appropriately. Use Machine Learning in combination with TestRelativePower to do this?
         }
 
-        protected virtual double TestRelativePower(BaseCharacter enemy, int simulations) {
-            //SimulateFight x simulations times
-            return 0.0; ///TODO:
+        public virtual double CalculateRelativePower(BaseCharacter enemy) {
+            double averageAttackRoll = AttackRoll(rollMax: true) - DiceRoller.averageRoll[DiceRoller.TwentySidedDie];
+            double averageAttackRollOfEnemy = enemy.AttackRoll(rollMax: true) - DiceRoller.averageRoll[DiceRoller.TwentySidedDie];
+            double chanceOfHittingEnemy = Math.Min(Math.Max((21 - (enemy.ArmorClass - (AttackRoll(rollMax: true) - 20))) / 20.0, 0.05), 0.95);
+            double enemyChanceOfHittingMe = Math.Min(Math.Max((21 - (ArmorClass - (enemy.AttackRoll(rollMax: true) - 20))) / 20.0, 0.05), 0.95);
+            double averageDamage = DamageRoll(rollMax: true) - Weapon.DamageDie(true) + DiceRoller.averageRoll[Weapon.DamageDie];
+            double enemyAverageDamage = enemy.DamageRoll(rollMax: true) - enemy.Weapon.DamageDie(true) + DiceRoller.averageRoll[enemy.Weapon.DamageDie];
+            double expectedDamage = chanceOfHittingEnemy * averageDamage;
+            double enemyExpectedDamage = enemyChanceOfHittingMe * enemyAverageDamage;
+            double expectedRoundsToKillEnemy = enemy.MaxHitPoints / expectedDamage;
+            double enemyExpectedRoundsToKillMe = MaxHitPoints / enemyExpectedDamage;
+            double minInverse = Math.Min(1 / expectedRoundsToKillEnemy, 1 / enemyExpectedRoundsToKillMe);
+            double maxInverse = Math.Max(1 / expectedRoundsToKillEnemy, 1 / enemyExpectedRoundsToKillMe);
+            double normalizedInverse = (1 / expectedRoundsToKillEnemy) / minInverse;
+            double enemyNormalizedInverse = (1 / enemyExpectedRoundsToKillMe) / minInverse;
+            double maxNormalizedInverse = Math.Max(normalizedInverse, enemyNormalizedInverse);
+            if (Program.Debugging) {
+                Console.WriteLine($"{enemy.Name} expected rounds to kill me: {enemyExpectedRoundsToKillMe} \n {Name} expected rounds to kill enemy: {expectedRoundsToKillEnemy}");
+                if (normalizedInverse > enemyNormalizedInverse) { 
+                    Console.WriteLine($"I'm {((maxNormalizedInverse - 1) * 100).ToString("n2")}% stronger.");
+                } else {
+                    Console.WriteLine($"{enemy.Name} is {((maxNormalizedInverse - 1) * 100).ToString("n2")}% stronger.");
+                }
+            }
+            if (normalizedInverse > enemyNormalizedInverse) {
+                return maxNormalizedInverse; //I'm stronger than the enemy
+            } else {
+                return -maxNormalizedInverse;
+            }
         }
 
-        protected virtual Tuple<double,int,int> SimulateFight(BaseCharacter enemy) {
+        protected virtual Tuple<double,int,int> SimulateFights(BaseCharacter enemy, int simulations = 1) {
             double percentWon = 0.0;
             int averageHealthLeft = 0;
             int enemyAverageHealthLeft = 0;
@@ -307,12 +359,12 @@ namespace ArenaFighter.Models
             ////TODO: gold
             if (attributes.Count > 0) {
                 var attributesToDisplay = new Dictionary<Attribute,int> (attributes);
-                attributesToDisplay[Attribute.ArmorClass] = ArmorClass;
-                foreach (Attribute a in attributes.Keys) {
+                attributesToDisplay[Attribute.ArmorClass] = ArmorClassFromArmor;
+                foreach (Attribute a in attributesToDisplay.Keys) {
                     int totalModifier = AddAllModifiers(a);
-                    description += $"  {a}: {attributes[a] + totalModifier}";
-                    if (totalModifier > 0) description += $" ({attributes[a]}+{totalModifier})";
-                    else if (totalModifier < 0) description += $" ({attributes[a]}-{totalModifier})";
+                    description += $"  {a}: {attributesToDisplay[a] + totalModifier}";
+                    if (totalModifier > 0) description += $" ({attributesToDisplay[a]}+{totalModifier})";
+                    else if (totalModifier < 0) description += $" ({attributesToDisplay[a]}-{totalModifier})";
                     description += "\n";
                 }
             }
@@ -338,6 +390,7 @@ namespace ArenaFighter.Models
                     description += $"{m}\n";
                 }
             }
+            description += $"Estimated Combat Prowess: {PowerEstimate}";
             return description;
         }
     }
@@ -381,6 +434,29 @@ namespace ArenaFighter.Models
         {
             Console.WriteLine("Override success!");
             base.GenerateAttributes(bonus);
+        }
+    }
+
+     public class MeasureStickJoe : BaseCharacter
+    {
+        public override void GenerateAttributes(int bonus = 0)
+        {
+            base.GenerateAttributes(bonus);
+            attributes[Attribute.Strength] = 16;
+            attributes[Attribute.Dexterity] = 15;
+            attributes[Attribute.Constitution] = 18;
+            attributes[Attribute.Intelligence] = 10;
+            attributes[Attribute.Wisdom] = 10;
+            attributes[Attribute.Charisma] = 10;
+            attributes[Attribute.MaxHitPoints] = HitDieType(true) + HitDieType(true) + ConstitutionMod;
+            attributes[Attribute.CurHitPoints] = attributes[Attribute.MaxHitPoints];
+        }
+
+        public MeasureStickJoe() : base("MeasureStick Joe", Genders.Male, new MountainDwarf()) {
+            EquipItem(new GreatAxe());
+            EquipItem(new Brigandine());
+            //EquipItem(new Spear());
+            //EquipItem(new ChainShirt());
         }
     }
 }
