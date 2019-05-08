@@ -1,40 +1,34 @@
-﻿using System.Security.AccessControl;
-using System.Runtime.InteropServices;
-using System.Transactions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Security.AccessControl;
 using System.Text;
 using System.Threading.Tasks;
-using System.Reflection;
+using System.Transactions;
+
+using ArenaFighter.ConsoleApplicationBase;
+using ArenaFighter.Models.Utils;
+using ArenaFighter.Presenters;
 
 using Humanizer;
 
-using ArenaFighter.ConsoleApplicationBase;
-using ArenaFighter.Presenters;
-using ArenaFighter.Models.Utils;
-
-namespace ArenaFighter.Views
-{
-    class ConsoleGame : IView
-    {
+namespace ArenaFighter.Views {
+    class ConsoleGame : IView {
         private Presenter presenter;
         private ArenaFighter.Models.Player player;
 
         private Menu<Genders> menuCharCreationChooseGender = new Menu<Genders>(
             "What is your characters gender?",
             new Dictionary<string, Tuple<string, Genders>>() {
-                ["m"] = new Tuple<string, Genders>("Male", Genders.Male),
-                ["f"] = new Tuple<string, Genders>("Female", Genders.Female),
-                ["o"] = new Tuple<string, Genders>("Non-Binary", Genders.Non_Binary),
+                ["m"] = new Tuple<string, Genders>("Male", Genders.Male), ["f"] = new Tuple<string, Genders>("Female", Genders.Female), ["o"] = new Tuple<string, Genders>("Non-Binary", Genders.Non_Binary),
             }
         );
 
-
         //string description, Dictionary<string, Tuple<string, Func<string>>> options
 
-        public ConsoleGame()
-        {
+        public ConsoleGame() {
             presenter = Presenter.Instance(this);
             Console.Title = "Dungeons & Gladiators";
             CharacterCreation();
@@ -51,7 +45,7 @@ namespace ArenaFighter.Views
             string name = AskUserForString($"What is {Language.PossessiveAdjective(gender)} name? ");
             player = presenter.CreateCharacter(name, gender, race);
             Console.WriteLine(player);
-            
+
         }
 
         private string AskUserForString(string prompt) {
@@ -59,22 +53,17 @@ namespace ArenaFighter.Views
             return Console.ReadLine();
         }
 
-
-        public void RunDeveloperMode()
-        {
+        public void RunDeveloperMode() {
             AppState.SetState(State.RUNNING);
-            while (AppState.GetState() > State.IDLE)
-            {
+            while (AppState.GetState() > State.IDLE) {
                 var consoleInput = ReadFromConsole();
-                if (string.IsNullOrWhiteSpace(consoleInput)) continue;
+                if (string.IsNullOrWhiteSpace(consoleInput))continue;
 
-                try
-                {
+                try {
                     // Create a ConsoleCommand instance:
                     var cmd = new ConsoleCommand(consoleInput);
 
-                    switch (cmd.Name)
-                    {
+                    switch (cmd.Name) {
                         case "help":
                         case "?":
                             WriteToConsole(BuildHelpMessage());
@@ -91,41 +80,33 @@ namespace ArenaFighter.Views
                             WriteToConsole(result);
                             break;
                     }
-                }
-                catch (Exception ex)
-                {
+                } catch (Exception ex) {
                     // OOPS! Something went wrong - Write out the problem:
                     WriteToConsole(ex.Message);
                 }
             }
         }
 
-        static void WriteToConsole(string message = "")
-        {
-            if (message.Length > 0)
-            {
+        static void WriteToConsole(string message = "") {
+            if (message.Length > 0) {
                 Console.WriteLine(message);
             }
         }
 
         const string _readPrompt = "developer mode> ";
-        public static string ReadFromConsole(string promptMessage = "")
-        {
+        public static string ReadFromConsole(string promptMessage = "") {
             // Show a prompt, and get input:
             Console.Write(_readPrompt + promptMessage);
             return Console.ReadLine();
         }
 
-        static string BuildHelpMessage(string library = null)
-        {
+        static string BuildHelpMessage(string library = null) {
             var sb = new StringBuilder("Commands: ");
             sb.AppendLine();
-            foreach (var item in CommandLibrary.Content)
-            {
+            foreach (var item in CommandLibrary.Content) {
                 if (library != null && item.Key != library)
                     continue;
-                foreach (var cmd in item.Value.MethodDictionary)
-                {
+                foreach (var cmd in item.Value.MethodDictionary) {
                     sb.Append(ConsoleFormatting.Indent(1));
                     sb.Append(item.Key);
                     sb.Append(".");

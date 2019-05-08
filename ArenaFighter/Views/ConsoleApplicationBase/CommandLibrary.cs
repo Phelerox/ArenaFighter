@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,23 +8,17 @@ using System.Threading.Tasks;
 
 using ArenaFighter.ConsoleApplicationBase.Properties;
 
-namespace ArenaFighter.ConsoleApplicationBase
-{
-    public static class CommandLibrary
-    {
+namespace ArenaFighter.ConsoleApplicationBase {
+    public static class CommandLibrary {
         public static readonly string CommandNamespace = "ArenaFighter.ConsoleApplicationBase.Commands";
         public static Dictionary<string, CommandClassInfo> Content { get; }
 
-
-        static CommandLibrary()
-        {
+        static CommandLibrary() {
             Content = new Dictionary<string, CommandClassInfo>();
             initialize();
         }
 
-
-        static void initialize()
-        {
+        static void initialize() {
             var assembly = Assembly.GetExecutingAssembly();
             var commandClasses = listMatchingAssemblyTypes(assembly);
 
@@ -32,8 +26,7 @@ namespace ArenaFighter.ConsoleApplicationBase
             addCommands(assembly, commandClasses);
 
             //add commands from external assemblies listed in App.config
-            foreach (var assemblyFile in Settings.Default.AssemblyFiles)
-            {
+            foreach (var assemblyFile in Settings.Default.AssemblyFiles) {
                 addCommandsFromAssemblyFile(assemblyFile);
             }
         }
@@ -45,29 +38,24 @@ namespace ArenaFighter.ConsoleApplicationBase
         /// </summary>
         /// <param name="assmbl">The Assembly to get the classes from</param>
         /// <returns></returns>
-        static List<Type> listMatchingAssemblyTypes(Assembly assmbl)
-        {
+        static List<Type> listMatchingAssemblyTypes(Assembly assmbl) {
             var q = from t in assmbl.GetTypes()
-                    where t.IsClass && t.Namespace == CommandNamespace
-                    select t;
-            
+            where t.IsClass && t.Namespace == CommandNamespace
+            select t;
+
             return q.ToList();
         }
-
 
         /// <summary>
         /// Adds public static methods from a list of classes
         /// </summary>
         /// <param name="owningAssembly"></param>
         /// <param name="cmdClasses"></param>
-        static void addCommands(Assembly owningAssembly, List<Type> cmdClasses)
-        {
-            foreach (var commandClass in cmdClasses)
-            {
+        static void addCommands(Assembly owningAssembly, List<Type> cmdClasses) {
+            foreach (var commandClass in cmdClasses) {
                 var methods = commandClass.GetMethods(BindingFlags.Static | BindingFlags.Public);
                 var methodDictionary = new Dictionary<string, IEnumerable<ParameterInfo>>();
-                foreach (var method in methods)
-                {
+                foreach (var method in methods) {
                     string commandName = method.Name;
                     methodDictionary.Add(commandName, method.GetParameters());
                 }
@@ -80,10 +68,8 @@ namespace ArenaFighter.ConsoleApplicationBase
         /// adds suitable commands from a specified assembly file
         /// </summary>
         /// <param name="assemblyFile"></param>
-        public static void addCommandsFromAssemblyFile(string assemblyFile)
-        {
-            if (File.Exists(assemblyFile))
-            {
+        public static void addCommandsFromAssemblyFile(string assemblyFile) {
+            if (File.Exists(assemblyFile)) {
                 var extAssembly = Assembly.LoadFrom(assemblyFile);
                 var extCommandCLasses = listMatchingAssemblyTypes(extAssembly);
 

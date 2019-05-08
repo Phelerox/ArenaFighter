@@ -3,14 +3,11 @@ using System.Linq;
 using System;
 using System.Collections.Generic;
 
-
 using ArenaFighter.Models;
 using ArenaFighter.Models.Utils;
 using ArenaFighter.Views;
 
-
-namespace ArenaFighter.Presenters
-{
+namespace ArenaFighter.Presenters {
     public enum GameStage {
         CharacterCreation,
         PrivateQuarters, //CharacterInfo, Shop/Equipment, Training?, Rest, Pay Doctor
@@ -28,8 +25,7 @@ namespace ArenaFighter.Presenters
         RetireCampaign
     }
 
-    public sealed class Presenter
-    {
+    public sealed class Presenter {
         private static readonly Lazy<Presenter> lazy = new Lazy<Presenter>(() => new Presenter());
 
         private static IView View = null;
@@ -40,21 +36,18 @@ namespace ArenaFighter.Presenters
 
         private Action nextRequiredAction = Action.CreateCharacter;
 
-        private Dictionary<GameStage, List<Action>> validActionsAtStage = new Dictionary<GameStage, List<Action>>()
-        {
-            [GameStage.CharacterCreation] = new List<Action>() {Action.CreateCharacter}
+        private Dictionary<GameStage, List<Action>> validActionsAtStage = new Dictionary<GameStage, List<Action>>() {
+            [GameStage.CharacterCreation] = new List<Action>() { Action.CreateCharacter }
         };
 
         private Campaign campaign = null;
 
-        public static Presenter Instance(IView v)
-        {
+        public static Presenter Instance(IView v) {
             View = v;
             return lazy.Value;
         }
 
-        private Presenter()
-        {
+        private Presenter() {
             reflection = Reflection.Instance();
         }
 
@@ -67,8 +60,7 @@ namespace ArenaFighter.Presenters
             if (ValidActions().Contains(Action.CreateCharacter)) {
                 campaign = new Campaign(name, gender, race);
                 return campaign.Player;
-            }
-            else {
+            } else {
                 return null;
             }
         }

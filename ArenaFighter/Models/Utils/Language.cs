@@ -2,8 +2,7 @@ using System.Collections.Generic;
 
 using Humanizer;
 
-namespace ArenaFighter.Models.Utils
-{
+namespace ArenaFighter.Models.Utils {
     public enum Genders {
         Male,
         Female,
@@ -16,30 +15,21 @@ namespace ArenaFighter.Models.Utils
         }
     }
 
-    public static class Language
-    {
+    public static class Language {
         private static Dictionary<Genders, string> subjectPronouns = new Dictionary<Genders, string>() {
-            [Genders.Male] = "he",
-            [Genders.Female] = "she",
-            [Genders.Non_Binary] = "they"
+            [Genders.Male] = "he", [Genders.Female] = "she", [Genders.Non_Binary] = "they"
         };
 
         private static Dictionary<Genders, string> objectPronouns = new Dictionary<Genders, string>() {
-            [Genders.Male] = "him",
-            [Genders.Female] = "her",
-            [Genders.Non_Binary] = "them"
+            [Genders.Male] = "him", [Genders.Female] = "her", [Genders.Non_Binary] = "them"
         };
 
         private static Dictionary<Genders, string> possessiveAdjectives = new Dictionary<Genders, string>() {
-            [Genders.Male] = "his",
-            [Genders.Female] = "her",
-            [Genders.Non_Binary] = "their"
+            [Genders.Male] = "his", [Genders.Female] = "her", [Genders.Non_Binary] = "their"
         };
 
         private static Dictionary<Genders, string> possessivePronouns = new Dictionary<Genders, string>() {
-            [Genders.Male] = "his",
-            [Genders.Female] = "hers",
-            [Genders.Non_Binary] = "theirs"
+            [Genders.Male] = "his", [Genders.Female] = "hers", [Genders.Non_Binary] = "theirs"
         };
 
         public static string SubjectPronoun(BaseCharacter character) {
@@ -73,7 +63,6 @@ namespace ArenaFighter.Models.Utils
         public static string PossessivePronoun(Genders gender) {
             return possessivePronouns[gender];
         }
-
 
     }
 }

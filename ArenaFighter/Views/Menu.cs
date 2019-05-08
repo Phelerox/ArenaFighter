@@ -1,22 +1,19 @@
 using System;
 using System.Collections.Generic;
 
-namespace ArenaFighter.Views
-{
-    public class Menu<T>
-    {
+namespace ArenaFighter.Views {
+    public class Menu<T> {
         private string description;
-        private Dictionary<string,Tuple<string, T>> options;
+        private Dictionary<string, Tuple<string, T>> options;
         private bool simpleSelectors = true;
 
         public Menu(string description, Dictionary<string, Tuple<string, T>> options) {
             this.description = description;
             this.options = options;
-            foreach(string selector in options.Keys) {
+            foreach (string selector in options.Keys) {
                 if (selector.Length == 0) {
                     throw new ArgumentException("An option has an empty selector!");
-                }
-                else if (selector.Length > 1) {
+                } else if (selector.Length > 1) {
                     simpleSelectors = false;
                 }
             }
@@ -28,13 +25,12 @@ namespace ArenaFighter.Views
             } else {
                 Console.WriteLine(tempDescription);
             }
-			if (simpleSelectors) {
+            if (simpleSelectors) {
                 return AskWithSimpleSelectors();
-			} else {
+            } else {
                 return AskWithStringSelectors();
             }
-		}
-
+        }
 
         private T AskWithSimpleSelectors() {
             Console.WriteLine("");
@@ -58,8 +54,7 @@ namespace ArenaFighter.Views
             //throw new Exception();
         }
 
-        public static void ClearCurrentConsoleLine()
-        {
+        public static void ClearCurrentConsoleLine() {
             int currentLineCursor = Console.CursorTop;
             Console.SetCursorPosition(0, Console.CursorTop);
             Console.Write(new string(' ', Console.WindowWidth));

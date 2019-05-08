@@ -1,26 +1,25 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Collections.Generic;
 
 using ArenaFighter.Models;
 using ArenaFighter.Models.Utils;
 
-
-namespace ArenaFighter.Models
-{
-    public class Campaign
-    {
-        public BaseCharacter measureStickJoe = new Player("Joeee", Genders.Male, new MountainDwarf());//new MeasureStickJoe();
+namespace ArenaFighter.Models {
+    public class Campaign {
         public ulong DaysPassed { get; }
+        protected List<Battle> battles = new List<Battle>();
         public Campaign(string playerName, Genders gender, Race race) {
             Player = new Player(playerName, gender, race);
-            Console.WriteLine(measureStickJoe);
-            Player.CalculateRelativePower(measureStickJoe);
+            Console.WriteLine(MeasureStickJoe.Instance);
+            //Console.WriteLine(Player.PowerEstimate);
         }
 
-        public IEnumerable<Battle> PastBattles { get; set; }
+        public IEnumerable<Battle> PastBattles {
+            get { return battles; }
+        }
 
-        public Player Player { get; set; }
+        public Player Player { get; }
     }
 }
