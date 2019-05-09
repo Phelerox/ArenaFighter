@@ -17,7 +17,7 @@ namespace ArenaFighter.Models {
     public abstract class Equipment : Modifier {
         public abstract int Price { get; }
         public abstract Slot Slot { get; }
-        private static int highestPrice = new MasterworkPlate().Price;
+        private static int highestPrice = new LoricaPlumata().Price;
         public int ScaledAbundance(double priceScaling = 0.2, double maxPriceCutoffRatio = 0.5) {
             int price = Price;
             if (price > 0 && price <= 50)price = Convert.ToInt32((35 + price) * (50.0 / Math.Max((double)price, 15.0))); //lie to make crappy things less common
@@ -97,14 +97,14 @@ namespace ArenaFighter.Models {
             get { return 14; }
         }
     }
-    public class Half_plate : MediumArmor {
+    public class LoricaHamata : MediumArmor {
         public override int Price { get { return 750 * 5; } }
         public override int ArmorClass {
             get { return 15; }
         }
     }
 
-    public class Brigandine : MediumArmor {
+    public class LoricaSquamata : MediumArmor {
         public override int Price { get { return (3000 * 5) * 5; } }
         public override int ArmorClass {
             get { return 16; }
@@ -134,52 +134,86 @@ namespace ArenaFighter.Models {
             get { return 16; }
         }
     }
-    public class Splint : HeavyArmor {
+    public class LoricaMusculata : HeavyArmor {
         public override int Price { get { return 200 * 5 * 5; } }
         public override int ArmorClass {
             get { return 17; }
         }
     }
-    public class Plate : HeavyArmor {
+    public class LoricaSegmentata : HeavyArmor {
         public override int Price { get { return 1500 * 5 * 5; } }
         public override int ArmorClass {
             get { return 18; }
         }
     }
-    public class MasterworkPlate : HeavyArmor {
+    public class LoricaPlumata : HeavyArmor {
         public override int Price { get { return (int)7.5 * 1500 * 5 * 5; } }
         public override int ArmorClass {
             get { return 19; }
         }
     }
 
-    public class Shield : Equipment {
-        public override Slot Slot { get { return Slot.OffHand; } }
-        public override int Price { get { return 10 * 6 * 5; } }
-        private Dictionary<Attribute, int> modifiers = new Dictionary<Attribute, int>() {
-            [Attribute.ArmorClass] = 2,
-        };
-        public override Dictionary<Attribute, int> Modifiers { get { return modifiers; } }
+    public abstract class Helmet : Equipment {
+        public override Slot Slot { get { return Slot.Helmet; } }
 
         public override string ToString() {
             return base.ToString() + $" | {Price} gp";
         }
     }
 
-    public class Buckler : Shield {
-        public override int Price { get { return 9 * 5; } }
-        private Dictionary<Attribute, int> modifiers = new Dictionary<Attribute, int>() {
-            [Attribute.ArmorClass] = 1,
+    public class Leather_cap : Helmet {
+        public override int Price { get { return 35 * 2 * 5; } }
+        private Dictionary<Attribute, int> attributeModifiers = new Dictionary<Attribute, int>() {
+            [Attribute.MaxHitPoints] = 3,
         };
-        public override Dictionary<Attribute, int> Modifiers { get { return modifiers; } }
+        protected override Dictionary<Attribute, int> AttributeModifiers { get { return attributeModifiers; } }
     }
 
-    public class TowerShield : Shield {
+    public class Galea : Helmet {
+        public override int Price { get { return 350 * 2 * 5; } }
+        private Dictionary<Attribute, int> attributeModifiers = new Dictionary<Attribute, int>() {
+            [Attribute.ArmorClass] = 1,
+        };
+        protected override Dictionary<Attribute, int> AttributeModifiers { get { return attributeModifiers; } }
+    }
+    public class ImperialGalea : Helmet {
+        public override int Price { get { return 850 * 2 * 5; } }
+        private Dictionary<Attribute, int> attributeModifiers = new Dictionary<Attribute, int>() {
+            [Attribute.ArmorClass] = 1, [Attribute.MaxHitPoints] = 5,
+        };
+        protected override Dictionary<Attribute, int> AttributeModifiers { get { return attributeModifiers; } }
+    }
+    public abstract class Shield : Equipment {
+        public override Slot Slot { get { return Slot.OffHand; } }
+
+        public override string ToString() {
+            return base.ToString() + $" | {Price} gp";
+        }
+    }
+
+    public class Aspis : Shield {
+        public override Slot Slot { get { return Slot.OffHand; } }
+        public override int Price { get { return 10 * 6 * 5; } }
+        private Dictionary<Attribute, int> attributeModifiers = new Dictionary<Attribute, int>() {
+            [Attribute.ArmorClass] = 2,
+        };
+        protected override Dictionary<Attribute, int> AttributeModifiers { get { return attributeModifiers; } }
+    }
+
+    public class Caetra : Shield {
+        public override int Price { get { return 9 * 5; } }
+        private Dictionary<Attribute, int> attributeModifiers = new Dictionary<Attribute, int>() {
+            [Attribute.ArmorClass] = 1,
+        };
+        protected override Dictionary<Attribute, int> AttributeModifiers { get { return attributeModifiers; } }
+    }
+
+    public class Scutum : Shield {
         public override int Price { get { return 400 * 2 * 5; } }
-        private Dictionary<Attribute, int> modifiers = new Dictionary<Attribute, int>() {
+        private Dictionary<Attribute, int> attributeModifiers = new Dictionary<Attribute, int>() {
             [Attribute.ArmorClass] = 3,
         };
-        public override Dictionary<Attribute, int> Modifiers { get { return modifiers; } }
+        protected override Dictionary<Attribute, int> AttributeModifiers { get { return attributeModifiers; } }
     }
 
     public abstract class Weapon : Equipment {
@@ -204,26 +238,48 @@ namespace ArenaFighter.Models {
         }
     }
 
-    public class Dagger : Weapon {
+    public class Pugio : Weapon {
         public override bool Finesse { get { return true; } }
-        public override int Price { get { return 3 * 5; } }
+        public override int Price { get { return 8 * 5; } }
         public override Func<bool, int> DamageDie {
             get { return DiceRoller.FourSidedDie; }
         }
+        private Dictionary<Attribute, int> attributeModifiers = new Dictionary<Attribute, int>() {
+            [Attribute.DamageBonus] = 1, [Attribute.AttackRollBonus] = 1,
+        };
+        protected override Dictionary<Attribute, int> AttributeModifiers { get { return attributeModifiers; } }
     }
-    public class Spear : Weapon {
+    public class Hasta : Weapon {
         public override bool Versatile { get { return true; } }
         public override int Price { get { return 12 * 5; } }
         public override Func<bool, int> DamageDie {
             get { return DiceRoller.SixSidedDie; }
         }
+        private Dictionary<Attribute, int> attributeModifiers = new Dictionary<Attribute, int>() {
+            [Attribute.AttackRollBonus] = 1,
+        };
     }
-    public class Scimitar : Weapon {
+    public class Gladius : Weapon {
         public override bool Finesse { get { return true; } }
-        public override int Price { get { return 30 * 5; } }
+        public override int Price { get { return 67 * 5; } }
         public override Func<bool, int> DamageDie {
             get { return DiceRoller.SixSidedDie; }
         }
+        private Dictionary<Attribute, int> attributeModifiers = new Dictionary<Attribute, int>() {
+            [Attribute.DamageBonus] = 1,
+        };
+        protected override Dictionary<Attribute, int> AttributeModifiers { get { return attributeModifiers; } }
+    }
+    public class Spatha : Weapon {
+        public override bool Finesse { get { return true; } }
+        public override int Price { get { return 167 * 5; } }
+        public override Func<bool, int> DamageDie {
+            get { return DiceRoller.EightSidedDie; }
+        }
+        private Dictionary<Attribute, int> attributeModifiers = new Dictionary<Attribute, int>() {
+            [Attribute.AttackRollBonus] = 1,
+        };
+        protected override Dictionary<Attribute, int> AttributeModifiers { get { return attributeModifiers; } }
     }
     public class Warhammer : Weapon {
         public override bool Versatile { get { return true; } }

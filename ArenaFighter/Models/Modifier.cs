@@ -19,24 +19,26 @@ namespace ArenaFighter.Models {
     }
 
     public abstract class Modifier {
-        public virtual Dictionary<Attribute, int> Modifiers { get { return new Dictionary<Attribute, int>(); } }
+        protected virtual Dictionary<Attribute, int> AttributeModifiers { get { return new Dictionary<Attribute, int>(); } }
         public virtual int GetModifierFor(Attribute attribute) {
-            if (Modifiers.ContainsKey(attribute)) {
-                return Modifiers[attribute];
+            if (AttributeModifiers.ContainsKey(attribute)) {
+                return AttributeModifiers[attribute];
             } else {
                 return 0;
             }
         }
 
         public virtual string Name { get { return this.GetType().Name.Humanize(LetterCasing.Title); } }
-
+        public virtual string Description {
+            get { return ""; }
+        }
         public override string ToString() {
-            string description = Name;
-            if (Modifiers.Count > 0) {
+            string description = Name + (Description.Length > 0 ? " | " + Description + " |" : "");
+            if (AttributeModifiers.Count > 0) {
                 description += " (";
                 bool firstMod = true;
-                foreach (Attribute a in Modifiers.Keys) {
-                    int mod = Modifiers[a];
+                foreach (Attribute a in AttributeModifiers.Keys) {
+                    int mod = AttributeModifiers[a];
                     if (mod == 0)continue;
                     if (!firstMod)description += " ";
                     else firstMod = false;
@@ -65,6 +67,9 @@ namespace ArenaFighter.Models {
         private HashSet<DamageType> physicalDamage = new HashSet<DamageType>() { DamageType.Bludgeoning, DamageType.Piercing, DamageType.Slashing };
         public dynamic DamageTaken(dynamic damage, DamageType damageType) {
             return physicalDamage.Contains(damageType) ? Math.Max(damage - 3, 0) : damage;
+        }
+        public override string Description {
+            get { return "Reduces physical damage taken by 3"; }
         }
     }
 

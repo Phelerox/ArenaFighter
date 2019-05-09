@@ -20,7 +20,7 @@ namespace ArenaFighter.Models {
         Intelligence, //Boost both experience and gold gain by 5% per IntMod
         Wisdom, //Boost experience gain by 10% per WisMod
         Charisma, //Boost gold gain by 10% per ChaMod
-        CurHitPoints,
+        DamageTaken,
         MaxHitPoints, // Level 1: Max(Class Hit Die) + ConMod. Increases by Roll(Class Hit Die) + ConMod every level thereafter.
         ArmorClass = 101,
         AttackRollBonus = 102,
@@ -190,7 +190,7 @@ namespace ArenaFighter.Models {
             }
         }
 
-        public Weapon Weapon { get { return (Weapon)equipment[Slot.MainHand]; } }
+        public Weapon Weapon { get { return (Weapon)Equipment[Slot.MainHand]; } }
 
         public void EquipRandomEquipment() {
             foreach (Equipment e in Reflection.instance.GenerateRandomEquipment(0).Values) {
@@ -270,8 +270,8 @@ namespace ArenaFighter.Models {
         }
 
         public int CurHitPoints {
-            get { return attributes[Attribute.CurHitPoints]; }
-            set { attributes[Attribute.CurHitPoints] = value; }
+            get { return MaxHitPoints - attributes[Attribute.DamageTaken]; }
+            set { attributes[Attribute.DamageTaken] = MaxHitPoints - value; }
         }
 
         public int MaxHitPoints {
@@ -316,7 +316,6 @@ namespace ArenaFighter.Models {
             }
 
             attributes[Attribute.MaxHitPoints] = HitDieType(true) + HitDieType(false) + ConstitutionMod;
-            attributes[Attribute.CurHitPoints] = MaxHitPoints;
             return;
         }
 
@@ -330,7 +329,7 @@ namespace ArenaFighter.Models {
                 } else if (roll == 1) {
                     return Int32.MinValue;
                 }
-                return roll + Proficiency + (finesse ? Math.Max(StrengthMod, DexterityMod) : StrengthMod);
+                return roll + Proficiency + (finesse ? Math.Max(StrengthMod, DexterityMod) : StrengthMod) + AddAllModifiers(Attribute.AttackRollBonus);
             }
             if ((bool)advantage) {
                 return Math.Max(AttackRoll(rollMax: rollMax), AttackRoll(rollMax: rollMax));
@@ -345,7 +344,7 @@ namespace ArenaFighter.Models {
             bool versatile = weapon?.Versatile ?? false;
             Func<bool, int> damageDie = ((versatile && (Equipment.ContainsKey(Slot.OffHand) && Equipment[Slot.OffHand] != null) ?
                 DiceRoller.enlargeDie(weapon?.DamageDie) : weapon?.DamageDie) ?? DiceRoller.FourSidedDie);
-            return (finesse ? Math.Max(StrengthMod, DexterityMod) : StrengthMod) + (critical ? damageDie(rollMax) + damageDie(rollMax) : damageDie(rollMax));
+            return (finesse ? Math.Max(StrengthMod, DexterityMod) : StrengthMod) + (critical ? damageDie(rollMax) + damageDie(rollMax) : damageDie(rollMax)) + AddAllModifiers(Attribute.DamageBonus);
         }
 
         public virtual dynamic ReceiveDamage(dynamic damage, DamageType damageType = DamageType.Slashing, bool justKidding = false) {
@@ -458,10 +457,11 @@ namespace ArenaFighter.Models {
     public class Player : BaseCharacter {
         public Player(string name, Genders gender, Race race, bool overrideStats = false) : base(name, gender, race) {
             EquipBestEquipmentWithinBudget(budgetPerSlot: 350);
-            AddModifier(new HeavyArmorMaster()); //Remove, it's just for debug purposes
+            //Remove, it's just for debug purposes
             if (overrideStats) {
                 EquipItem(new GreatAxe());
-                EquipItem(new Brigandine());
+                EquipItem(new LoricaSquamata());
+                AddModifier(new HeavyArmorMaster());
 
                 attributes[Attribute.Strength] = 16;
                 attributes[Attribute.Dexterity] = 14;
@@ -470,7 +470,6 @@ namespace ArenaFighter.Models {
                 attributes[Attribute.Wisdom] = 10;
                 attributes[Attribute.Charisma] = 10;
                 attributes[Attribute.MaxHitPoints] = HitDieType(true) + ConstitutionMod + ConstitutionMod;
-                attributes[Attribute.CurHitPoints] = attributes[Attribute.MaxHitPoints];
             }
         }
     }
@@ -502,7 +501,7 @@ namespace ArenaFighter.Models {
 
         public MeasureStickJoe() : base("MeasureStick Joe", Genders.Male, new MountainDwarf()) {
             EquipItem(new GreatAxe());
-            EquipItem(new Brigandine());
+            EquipItem(new LoricaSquamata());
 
             attributes[Attribute.Strength] = 16;
             attributes[Attribute.Dexterity] = 14;
@@ -511,7 +510,6 @@ namespace ArenaFighter.Models {
             attributes[Attribute.Wisdom] = 10;
             attributes[Attribute.Charisma] = 10;
             attributes[Attribute.MaxHitPoints] = HitDieType(true) + ConstitutionMod + ConstitutionMod;
-            attributes[Attribute.CurHitPoints] = attributes[Attribute.MaxHitPoints];
         }
     }
 }
