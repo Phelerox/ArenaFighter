@@ -12,7 +12,7 @@ namespace ArenaFighter.Models {
         protected List<Battle> battles = new List<Battle>();
         public Campaign(string playerName, Genders gender, Race race) {
             Player = new Player(playerName, gender, race);
-            Console.WriteLine(MeasureStickJoe.Instance);
+            //Console.WriteLine(MeasureStickJoe.Instance);
             //Console.WriteLine(Player.PowerEstimate);
         }
 

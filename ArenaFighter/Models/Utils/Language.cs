@@ -64,5 +64,9 @@ namespace ArenaFighter.Models.Utils {
             return possessivePronouns[gender];
         }
 
+        public static string PickRandomString(string[] alternatives) {
+            return alternatives[DiceRoller.Next(0, alternatives.Length)];
+        }
+
     }
 }

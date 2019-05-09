@@ -391,7 +391,7 @@ namespace ArenaFighter.Models {
             double enemyNormalizedInverse = (1 / enemyExpectedRoundsToKillMe) / minInverse;
             double maxNormalizedInverse = Math.Max(normalizedInverse, enemyNormalizedInverse);
             if (Program.Debugging) {
-                Console.WriteLine($"{enemy.Name} expected rounds to kill me: {enemyExpectedRoundsToKillMe} \n {Name} expected rounds to kill enemy: {expectedRoundsToKillEnemy}");
+                Console.WriteLine($"{enemy.Name} expected attackAttempts to kill me: {enemyExpectedRoundsToKillMe} \n {Name} expected attackAttempts to kill enemy: {expectedRoundsToKillEnemy}");
                 if (normalizedInverse > enemyNormalizedInverse) {
                     Console.WriteLine($"I'm {((maxNormalizedInverse - 1) * 100).ToString("n2")}% stronger.");
                 } else {
@@ -456,7 +456,7 @@ namespace ArenaFighter.Models {
     }
 
     public class Player : BaseCharacter {
-        public Player(string name, Genders gender, Race race, bool overrideStats = true) : base(name, gender, race) {
+        public Player(string name, Genders gender, Race race, bool overrideStats = false) : base(name, gender, race) {
             EquipBestEquipmentWithinBudget(budgetPerSlot: 350);
             AddModifier(new HeavyArmorMaster()); //Remove, it's just for debug purposes
             if (overrideStats) {
@@ -477,7 +477,6 @@ namespace ArenaFighter.Models {
 
     public class Champion : BaseCharacter {
         public override void GenerateAttributes(int bonus = 2) {
-            Console.WriteLine("Override success!");
             base.GenerateAttributes(bonus);
         }
     }
@@ -488,14 +487,12 @@ namespace ArenaFighter.Models {
 
     public class Soldier : BaseCharacter {
         public override void GenerateAttributes(int bonus = -2) {
-            Console.WriteLine("Override success!");
             base.GenerateAttributes(bonus);
         }
     }
 
     public class Novice : BaseCharacter {
         public override void GenerateAttributes(int bonus = -4) {
-            Console.WriteLine("Override success!");
             base.GenerateAttributes(bonus);
         }
     }
@@ -515,8 +512,6 @@ namespace ArenaFighter.Models {
             attributes[Attribute.Charisma] = 10;
             attributes[Attribute.MaxHitPoints] = HitDieType(true) + ConstitutionMod + ConstitutionMod;
             attributes[Attribute.CurHitPoints] = attributes[Attribute.MaxHitPoints];
-            //EquipItem(new Spear());
-            //EquipItem(new ChainShirt());
         }
     }
 }
