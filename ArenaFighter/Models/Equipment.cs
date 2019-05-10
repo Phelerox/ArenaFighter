@@ -151,6 +151,11 @@ namespace ArenaFighter.Models {
         public override int ArmorClass {
             get { return 19; }
         }
+        private Dictionary<Attribute, int> attributeModifiers = new Dictionary<Attribute, int>() {
+            [Attribute.SavingThrowsBonus] = 1,
+        };
+        protected override Dictionary<Attribute, int> AttributeModifiers { get { return attributeModifiers; } }
+
     }
 
     public abstract class Helmet : Equipment {
@@ -191,19 +196,19 @@ namespace ArenaFighter.Models {
         }
     }
 
+    public class Caetra : Shield {
+        public override int Price { get { return 9 * 5; } }
+        private Dictionary<Attribute, int> attributeModifiers = new Dictionary<Attribute, int>() {
+            [Attribute.ArmorClass] = 1,
+        };
+        protected override Dictionary<Attribute, int> AttributeModifiers { get { return attributeModifiers; } }
+    }
+
     public class Aspis : Shield {
         public override Slot Slot { get { return Slot.OffHand; } }
         public override int Price { get { return 10 * 6 * 5; } }
         private Dictionary<Attribute, int> attributeModifiers = new Dictionary<Attribute, int>() {
             [Attribute.ArmorClass] = 2,
-        };
-        protected override Dictionary<Attribute, int> AttributeModifiers { get { return attributeModifiers; } }
-    }
-
-    public class Caetra : Shield {
-        public override int Price { get { return 9 * 5; } }
-        private Dictionary<Attribute, int> attributeModifiers = new Dictionary<Attribute, int>() {
-            [Attribute.ArmorClass] = 1,
         };
         protected override Dictionary<Attribute, int> AttributeModifiers { get { return attributeModifiers; } }
     }
@@ -226,13 +231,14 @@ namespace ArenaFighter.Models {
         public virtual bool Versatile { get { return false; } }
 
         public override string ToString() {
-            return base.ToString() + $" | Damage: {DamageDieSize}{(TwoHanded ? " | Two-handed" : " | One-handed")}{(Finesse ? " | Finesse" : "")}{(Versatile ? " | Versatile" : "")} | {Price} gp";
+            return base.ToString() + $" | Damage: {DamageDieSize}{(TwoHanded ? " | Two-handed" : " | One-handed")}{(Finesse ? " | Finesse" : "")}{(Versatile ? " | Versatile" : "")} | {DamageType} | {Price} gp";
         }
     }
 
     public class Club : Weapon {
         public override bool Versatile { get { return true; } }
         public override int Price { get { return 2 * 5; } }
+        public override DamageType DamageType { get { return DamageType.Bludgeoning; } }
         public override Func<bool, int> DamageDie {
             get { return DiceRoller.FourSidedDie; }
         }
@@ -241,6 +247,7 @@ namespace ArenaFighter.Models {
     public class Pugio : Weapon {
         public override bool Finesse { get { return true; } }
         public override int Price { get { return 8 * 5; } }
+        public override DamageType DamageType { get { return DamageType.Piercing; } }
         public override Func<bool, int> DamageDie {
             get { return DiceRoller.FourSidedDie; }
         }
@@ -252,6 +259,7 @@ namespace ArenaFighter.Models {
     public class Hasta : Weapon {
         public override bool Versatile { get { return true; } }
         public override int Price { get { return 12 * 5; } }
+        public override DamageType DamageType { get { return DamageType.Piercing; } }
         public override Func<bool, int> DamageDie {
             get { return DiceRoller.SixSidedDie; }
         }
@@ -262,6 +270,7 @@ namespace ArenaFighter.Models {
     public class Gladius : Weapon {
         public override bool Finesse { get { return true; } }
         public override int Price { get { return 67 * 5; } }
+        public override DamageType DamageType { get { return DamageType.Slashing; } }
         public override Func<bool, int> DamageDie {
             get { return DiceRoller.SixSidedDie; }
         }
@@ -273,6 +282,7 @@ namespace ArenaFighter.Models {
     public class Spatha : Weapon {
         public override bool Finesse { get { return true; } }
         public override int Price { get { return 167 * 5; } }
+        public override DamageType DamageType { get { return DamageType.Slashing; } }
         public override Func<bool, int> DamageDie {
             get { return DiceRoller.EightSidedDie; }
         }
@@ -284,6 +294,7 @@ namespace ArenaFighter.Models {
     public class Warhammer : Weapon {
         public override bool Versatile { get { return true; } }
         public override int Price { get { return 59 * 5; } }
+        public override DamageType DamageType { get { return DamageType.Bludgeoning; } }
         public override Func<bool, int> DamageDie {
             get { return DiceRoller.EightSidedDie; }
         }
@@ -291,6 +302,7 @@ namespace ArenaFighter.Models {
     public class GreatAxe : Weapon {
         public override int Price { get { return 150 * 3 * 5; } }
         public override bool TwoHanded { get { return true; } }
+        public override DamageType DamageType { get { return DamageType.Slashing; } }
         public override Func<bool, int> DamageDie {
             get { return DiceRoller.TwelveSidedDie; }
         }
@@ -298,6 +310,7 @@ namespace ArenaFighter.Models {
     public class GreatSword : Weapon {
         public override int Price { get { return 350 * 3 * 5; } }
         public override bool TwoHanded { get { return true; } }
+        public override DamageType DamageType { get { return DamageType.Slashing; } }
         public override Func<bool, int> DamageDie {
             get { return DiceRoller.TwoDSix; }
         }

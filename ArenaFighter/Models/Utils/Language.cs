@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 using Humanizer;
@@ -68,5 +69,26 @@ namespace ArenaFighter.Models.Utils {
             return alternatives[DiceRoller.Next(0, alternatives.Length)];
         }
 
+        public static string PadLinesLeft(string text, int padding, string customPadding = " ") {
+            return "".PadLeft(padding - 2, customPadding[0]) + customPadding[customPadding.Length - 1] + " " + text.Replace("\n", ("\n" + "".PadLeft(padding - 2, customPadding[0]) + customPadding[customPadding.Length - 1]));
+        }
+
+        public static string PadLines(string text, int totalPadding, string customLeftPadding = "->", string customRightPadding = "<-", string separator = " ") {
+            string changedText = text;
+            if (text.Length == 0) {
+                return "";
+            }
+            int separatorLengthTotal = separator.Length * 2;
+            int padding = totalPadding / 2;
+            if (padding <= separatorLengthTotal) {
+                padding = Math.Max(padding, 0);
+                return "".PadLeft(padding) + changedText + "".PadLeft(padding);
+            }
+            if (text[text.Length - 1] != '\n') {
+                changedText = text + separator + customRightPadding[0] + "".PadLeft(padding - separatorLengthTotal, customRightPadding[customRightPadding.Length - 1]);
+            }
+            changedText = changedText.Replace("\n", (separator + customRightPadding[0] + "".PadLeft(padding - separatorLengthTotal, customRightPadding[customRightPadding.Length - 1]) + "\n" + "".PadLeft(padding - separatorLengthTotal, customLeftPadding[0]) + customLeftPadding[customLeftPadding.Length - 1]));
+            return "".PadLeft(padding - separatorLengthTotal, customLeftPadding[0]) + customLeftPadding[customLeftPadding.Length - 1] + separator + changedText;
+        }
     }
 }

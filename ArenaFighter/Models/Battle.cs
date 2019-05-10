@@ -8,36 +8,63 @@ using ArenaFighter.Models.Utils;
 
 namespace ArenaFighter.Models {
     public class Battle {
-        public List<Round> rounds = new List<Round>();
-        public List<string> log = new List<string>();
-        private string description;
-        private BaseCharacter combatant;
-        private BaseCharacter opponent;
-        private BattleStatistics combatantStatistics;
-        private BattleStatistics opponentStatistics;
-        public BattleStatistics CombatantStatistics { get { return (BattleStatistics)combatantStatistics.Clone(); } }
-        private double estimatedPowerDifference;
+        public List<Round> Rounds { get; set; } = new List<Round>();
+        public List<string> Log { get; set; } = new List<string>();
+        private string description = "";
+        private string startBattleDescription = "";
+        private readonly BaseCharacter combatant;
+        private readonly BaseCharacter opponent;
+        public BaseCharacter CombatantAtStart { get; set; }
+        public BaseCharacter OpponentAtStart { get; set; }
+        private BaseCharacter loser;
+        public BaseCharacter Loser { get { return loser; } }
+        private BaseCharacter winner;
+        public BaseCharacter Winner { get { return winner; } }
+        private BattleStatistics startingCharacterStatistics;
+        private BattleStatistics characterGoingLastStatistics;
+        public BattleStatistics CombatantStatistics { get { return (BattleStatistics)startingCharacterStatistics.Clone(); } }
+        public BattleStatistics OpponentStatistics { get { return (BattleStatistics)characterGoingLastStatistics.Clone(); } }
+        private readonly double estimatedPowerDifference;
         public double EstimatedRelativePower {
             get { return estimatedPowerDifference; }
         }
 
-        public Battle(BaseCharacter combatant, BaseCharacter opponent, bool startBattle = true) {
-            this.combatant = combatant;
-            this.opponent = opponent;
-            combatantStatistics = new BattleStatistics(combatant, opponent);
-            opponentStatistics = new BattleStatistics(opponent, combatant);
-            estimatedPowerDifference = combatant.CalculateRelativePower(opponent);
-
-            if (startBattle) {
-                StartBattle();
-            }
-
+        public BaseCharacter StartingCharacter {
+            get { return CombatantInitiative > OpponentInitiative ? combatant : (CombatantInitiative < OpponentInitiative ? opponent : (combatant.Initiative >= opponent.Initiative ? combatant : opponent)); }
+        }
+        public BaseCharacter CharacterGoingLast {
+            get { return StartingCharacter.Equals(combatant) ? opponent : combatant; }
+        }
+        public bool CombatantStarts {
+            get { return combatant.Equals(StartingCharacter); }
+        }
+        public int CombatantInitiative { get; set; }
+        public int OpponentInitiative { get; set; }
+        public BaseCharacter OtherCharacter(BaseCharacter character) {
+            return StartingCharacter.Equals(character) ? CharacterGoingLast : StartingCharacter;
         }
 
-        public Battle StartBattle() {
-            while (!NextRound().BattleOver) {
-
+        public Battle(BaseCharacter combatant, BaseCharacter opponent) {
+            this.combatant = combatant;
+            this.CombatantAtStart = (BaseCharacter)combatant.Clone();
+            this.opponent = opponent;
+            this.OpponentAtStart = (BaseCharacter)opponent.Clone();
+            CombatantInitiative = this.combatant.Initiative + DiceRoller.TwentySidedDie();
+            OpponentInitiative = this.opponent.Initiative + DiceRoller.TwentySidedDie();
+            startingCharacterStatistics = new BattleStatistics(StartingCharacter, CharacterGoingLast);
+            characterGoingLastStatistics = new BattleStatistics(CharacterGoingLast, StartingCharacter);
+            estimatedPowerDifference = combatant.CalculateRelativePower(opponent);
+            if (combatant.CurHitPoints <= 0 || opponent.CurHitPoints <= 0) {
+                throw new ArgumentException("Can't have a battle without at least two living combatants!");
             }
+            StartBattle();
+        }
+
+        private Battle StartBattle() {
+            startBattleDescription = $"\nBattle between {combatant.Name} and {opponent.Name} commencing! {StartingCharacter.Name} seems full of energy!\n";
+            do {
+                (winner, loser) = NextRound().BattleOver;
+            } while (ReferenceEquals(winner, null));
             BattleOver();
             return this;
         }
@@ -49,26 +76,17 @@ namespace ArenaFighter.Models {
             } else if (roll == 1) {
                 return false; //Stumbled! Disadvantage on next attack
             } else {
-                if (rounds.Last().EarnedAdvantage == character)
+                if (Rounds.Count > 0 && Rounds.Last().EarnedAdvantage == character)
                     return true; //The enemy stumbled at the end of last round (Critical Miss)
                 return null; //no significant outcome
             }
         }
 
-        public Round ContinueBattle() {
-            Round round = NextRound();
-            if (round != null) {
-                return round;
-            } else {
-                throw new ApplicationException("The dead cannot fight.");
-            }
-        }
-
         private Round NextRound() {
             if (combatant.CurHitPoints > 0 && opponent.CurHitPoints > 0) {
-                Round round = new Round(combatantStatistics, opponentStatistics, combatantAdvantage : BetweenRoundsMovementOutcome(combatant), opponentAdvantage : BetweenRoundsMovementOutcome(opponent));
-                rounds.Add(round);
-                log.Add(round.ToString());
+                Round round = new Round(Rounds.Count + 1, startingCharacterStatistics, characterGoingLastStatistics, combatantAdvantage : BetweenRoundsMovementOutcome(StartingCharacter), opponentAdvantage : BetweenRoundsMovementOutcome(CharacterGoingLast));
+                Rounds.Add(round);
+                Log.Add(round.ToString());
                 return round;
             } else {
                 return null;
@@ -76,13 +94,19 @@ namespace ArenaFighter.Models {
         }
 
         private void BattleOver() {
-            combatantStatistics.BattleOver();
-            opponentStatistics.BattleOver();
+            startingCharacterStatistics.BattleOver(Winner);
+            characterGoingLastStatistics.BattleOver(Winner);
+            combatant.StillStanding(this);
+            opponent.StillStanding(this);
+            ToString();
         }
 
         public override string ToString() {
             if (this.description != "")return this.description;
-
+            description += startBattleDescription;
+            foreach (Round r in Rounds) {
+                description += r;
+            }
             return description;
         }
 
@@ -90,8 +114,9 @@ namespace ArenaFighter.Models {
 
     public class BattleStatistics : ICloneable {
         public BaseCharacter Character { get; set; }
+        public bool Won { get; set; }
         private string description = "";
-        private int enemyAC = 0;
+        public readonly int enemyAC = 0;
         private int hits = 0;
         private int misses = 0;
         private int criticalHits = 0;
@@ -100,12 +125,15 @@ namespace ArenaFighter.Models {
         private int criticalDamage = 0;
 
         public int AverageDamage {
-            get { return (totalDamage) / (hits); }
+            get { return (hits) > 0 ? (totalDamage) / (hits) : 0; }
         }
         public double ExpectedAverageDamage { get; set; }
         public double Accuracy {
-            get { return hits / (hits + misses); }
+            get {
+                return (hits + misses) > 0 ? hits / ((double)hits + misses) : 0;
+            }
         }
+
         public double ExpectedAccuracy { get; set; }
 
         public int CriticalHits {
@@ -136,7 +164,7 @@ namespace ArenaFighter.Models {
             Character = character;
             enemyAC = enemy.ArmorClass;
             ExpectedAccuracy = Math.Min(Math.Max((21 - (enemyAC - (character.AttackRoll(rollMax: true) - 20))) / 20.0, 0.05), 0.95);
-            ExpectedAverageDamage = enemy.ReceiveDamage(character.DamageRoll(rollMax: true) - character.Weapon.DamageDie(true) + DiceRoller.averageRoll[character.Weapon.DamageDie], character.Weapon.DamageType);
+            ExpectedAverageDamage = enemy.ReceiveDamage(character.DamageRoll(rollMax: true) - character.Weapon.DamageDie(true) + DiceRoller.averageRoll[character.Weapon.DamageDie], character.Weapon.DamageType, justKidding : true);
         }
 
         public void ReportAttackResults(bool hit, bool criticalHit, bool criticalMiss, int damageDealt = 0) {
@@ -150,9 +178,12 @@ namespace ArenaFighter.Models {
             totalDamage += damageDealt;
         }
 
-        public void BattleOver() {
+        public void BattleOver(BaseCharacter winner) {
             ExpectedTotalDamage = ExpectedAccuracy * ExpectedAverageDamage * (hits + misses);
-            ExpectedAverageDamage = (ExpectedAverageDamage * (Hits - CriticalHits) + (CriticalHits * (ExpectedAverageDamage + DiceRoller.averageRoll[Character.Weapon.DamageDie]))) / hits;
+            ExpectedAverageDamage = (hits) > 0 ? (ExpectedAverageDamage * (Hits - CriticalHits) + (CriticalHits * (ExpectedAverageDamage + DiceRoller.averageRoll[Character.Weapon.DamageDie]))) / hits : 0;
+            Won = Character.Equals(winner);
+            Character = (BaseCharacter)Character.Clone();
+            ToString();
         }
 
         public object Clone() {

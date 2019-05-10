@@ -13,7 +13,7 @@ namespace ArenaFighter.Models {
         public BaseCharacter defender;
         public bool? advantage;
         public bool criticalHit, criticalMiss, hit;
-        public int attackRoll, damageRoll, defenderArmorClass;
+        public int attackRoll, damageRoll, defenderArmorClass, defenderInitialHealth;
         public int damageDealt = 0;
         private string description = "";
 
@@ -22,6 +22,7 @@ namespace ArenaFighter.Models {
             this.defender = defender;
             this.advantage = advantage;
             defenderArmorClass = defender.ArmorClass;
+            defenderInitialHealth = defender.CurHitPoints;
             attackRoll = attacker.AttackRoll(advantage: advantage);
             criticalHit = attackRoll == Int32.MaxValue;
             criticalMiss = attackRoll == Int32.MinValue;
@@ -31,24 +32,29 @@ namespace ArenaFighter.Models {
                 damageDealt = defender.ReceiveDamage(damageRoll);
             }
             attackerStats.ReportAttackResults(hit, criticalHit, criticalMiss, damageDealt);
+            ToString();
         }
 
         public override string ToString() {
             if (this.description != "")return this.description;
-            string attackDescription, damageDescription, rollDescription = "";
-            damageDescription = hit ? $"{defender.Name} takes {damageDealt} damage" + (damageDealt != damageRoll ? $" (damage reduced by {damageRoll-damageDealt})" : "") + "." : "";
+            string attackDescription = "", damageDescription, healthDescription, rollDescription = "";
+            healthDescription = defender.CurHitPoints > 0 ? $", and now has {defender.CurHitPoints} Hit Points left." : $", which kills {Language.ObjectPronoun(defender.Gender)}!";
+            damageDescription = hit ? $"---> {defender.Name} takes {damageDealt} damage{healthDescription}" + (damageDealt != damageRoll ? $" (damage reduced by {damageRoll-damageDealt})" : "") + "" : "";
+            if (advantage != null) {
+                attackDescription = (bool)advantage ? "Sensing an opportunity, " : "Trembling a bit, ";
+            }
             if (criticalHit) {
-                attackDescription = Language.PickRandomString(new string[] { $"{attacker.Name} impresses with {Language.PossessiveAdjective(attacker.Gender)} quick moves!" });
+                attackDescription += Language.PickRandomString(new string[] { $"{attacker.Name} impresses with {Language.PossessiveAdjective(attacker.Gender)} quick moves!" });
             } else if (criticalMiss) {
-                attackDescription = Language.PickRandomString(new string[] { $"{attacker.Name} charges forward, but trips and falls over!" });
+                attackDescription += Language.PickRandomString(new string[] { $"{attacker.Name} charges forward, but trips and falls over!" });
             } else if (attackRoll >= defender.ArmorClass + 8) {
-                attackDescription = Language.PickRandomString(new string[] { $"{attacker.Name} makes it look so easy when {Language.SubjectPronoun(attacker.Gender)} pulls off a stunningly precise strike." });
+                attackDescription += Language.PickRandomString(new string[] { $"{attacker.Name} makes it look so easy when {Language.SubjectPronoun(attacker.Gender)} pulls off a stunningly precise strike." });
             } else if (hit) {
-                attackDescription = Language.PickRandomString(new string[] { $"{attacker.Name} charges forward with deadly intent, catching {defender.Name} with {Language.PossessiveAdjective(attacker.Gender)} {attacker.Weapon}." });
+                attackDescription += Language.PickRandomString(new string[] { $"{attacker.Name} charges forward with deadly intent, catching {defender.Name} with {Language.PossessiveAdjective(attacker.Gender)} {attacker.Weapon.Name}." });
             } else if (attackRoll >= defender.ArmorClass - 3) {
-                attackDescription = Language.PickRandomString(new string[] { $"{attacker.Name} directs a powerful strike towards {defender.Name} that just barely misses." });
+                attackDescription += Language.PickRandomString(new string[] { $"{attacker.Name} directs a powerful strike towards {defender.Name} that just barely misses." });
             } else {
-                attackDescription = Language.PickRandomString(new string[] { $"{attacker.Name} takes a swing looking really focused but {Language.PossessiveAdjective(attacker.Gender)} ends up way off the mark." });
+                attackDescription += Language.PickRandomString(new string[] { $"{attacker.Name} takes a swing looking really focused but {Language.SubjectPronoun(attacker.Gender)} ends up way off the mark." });
             }
             if (Program.Debugging) {
                 string adv = "";
@@ -58,80 +64,81 @@ namespace ArenaFighter.Models {
                 rollDescription = $" ({attackRoll} attack{adv} vs {defenderArmorClass} AC)";
             }
 
-            description = attackDescription + $" {attackDescription}{rollDescription}\n{damageDescription} ";
+            description = $"{attackDescription}{rollDescription}\n{damageDescription}";
 
             return description;
         }
     }
 
     public class CombatTurn {
-        private BaseCharacter turnOwner;
+        public readonly BaseCharacter turnOwner;
         private string description = "";
         public List<Attack> attemptedAttacks = new List<Attack>();
         public CombatTurn(BattleStatistics attacker, BaseCharacter defender, bool? advantage) {
             turnOwner = attacker.Character;
             for (int a = 0; a <= turnOwner.ExtraAttacks; a++) {
                 attemptedAttacks.Add(new Attack(attacker, defender, advantage));
+                if (defender.CurHitPoints <= 0) {
+                    break;
+                }
             }
+            ToString();
         }
 
         public override string ToString() {
             if (this.description != "")return this.description;
-            description = $"{turnOwner.Name}'s turn!\n";
             foreach (Attack a in attemptedAttacks) {
-                description += a.ToString() + "\n";
+                description += a.ToString();
             }
             return description;
         }
     }
 
     public class Round { //A round is composed of the combatants individual CombatTurns.
+        public int RoundNumber { get; set; }
         private BaseCharacter combatant, opponent;
         private List<CombatTurn> turns = new List<CombatTurn>();
         private string description = "";
+        private string roundStartDescription = "";
 
-        public bool BattleOver {
-            get { return combatant.CurHitPoints <= 0 || opponent.CurHitPoints <= 0; }
+        public Tuple<BaseCharacter, BaseCharacter> BattleOver {
+            get {
+                var winner = (combatant.CurHitPoints <= 0 ? opponent : (opponent.CurHitPoints <= 0 ? combatant : null));
+                return Tuple.Create<BaseCharacter, BaseCharacter>(winner, OtherCharacter(winner));
+            }
         }
-        public BaseCharacter StartingCharacter {
-            get { return CombatantInitiative > OpponentInitiative ? combatant : (CombatantInitiative < OpponentInitiative ? opponent : (combatant.Initiative >= opponent.Initiative ? combatant : opponent)); }
-        }
-        public BaseCharacter CharacterGoingLast {
-            get { return StartingCharacter == combatant ? opponent : combatant; }
-        }
-        public bool CombatantStarts {
-            get { return StartingCharacter == combatant; }
+        public BaseCharacter OtherCharacter(BaseCharacter character) {
+            return character != null ? (combatant.Equals(character) ? opponent : combatant) : null;
         }
         public BaseCharacter EarnedAdvantage { get; set; } = null;
 
-        public int CombatantInitiative { get; set; }
-        public int OpponentInitiative { get; set; }
         public Dictionary<BaseCharacter, BattleStatistics> statistics = new Dictionary<BaseCharacter, BattleStatistics>();
 
-        public Round(BattleStatistics combatantStats, BattleStatistics opponentStats, bool? combatantAdvantage = null, bool? opponentAdvantage = null) {
+        public Round(int roundNumber, BattleStatistics combatantStats, BattleStatistics opponentStats, bool? combatantAdvantage = null, bool? opponentAdvantage = null) {
             this.combatant = combatantStats.Character;
             this.opponent = opponentStats.Character;
+            this.RoundNumber = roundNumber;
             statistics[combatant] = combatantStats;
             statistics[opponent] = opponentStats;
-            CombatantInitiative = this.combatant.Initiative + DiceRoller.TwentySidedDie();
-            OpponentInitiative = this.opponent.Initiative + DiceRoller.TwentySidedDie();
-            //Initiative
-            turns.Add(new CombatTurn(statistics[StartingCharacter], CharacterGoingLast, CombatantStarts ? combatantAdvantage : opponentAdvantage));
-            if (!BattleOver) {
+            roundStartDescription += '\n' + $"\u200BRound {RoundNumber}! {combatant.Name} (HP: {combatant.CurHitPoints}/{combatant.MaxHitPoints}) vs {opponent.Name} (HP: {opponent.CurHitPoints}/{opponent.MaxHitPoints})\n";
+            turns.Add(new CombatTurn(statistics[combatant], opponent, combatantAdvantage));
+            if (BattleOver.Item1 == null) {
                 bool otherOneMessedUp = turns.Last().attemptedAttacks.Last().criticalMiss;
-                turns.Add(new CombatTurn(statistics[CharacterGoingLast], StartingCharacter, otherOneMessedUp ? (bool?)true : (CombatantStarts ? opponentAdvantage : combatantAdvantage)));
+                turns.Add(new CombatTurn(statistics[opponent], combatant, otherOneMessedUp ? (bool?)true : opponentAdvantage));
             }
             if (turns.Last().attemptedAttacks.Last().criticalMiss) {
-                EarnedAdvantage = StartingCharacter;
+                EarnedAdvantage = combatant;
             }
+            ToString();
         }
 
         public override string ToString() {
             if (this.description != "")return this.description;
-            description += $"New Round! {StartingCharacter.Name} gets to go first.\n";
+
             foreach (CombatTurn t in turns) {
                 description += t.ToString() + "\n";
             }
+            description = roundStartDescription + description;
             return description;
         }
     }

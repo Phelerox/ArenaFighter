@@ -6,11 +6,11 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-using ArenaFighter.ConsoleApplicationBase.Properties;
+using ArenaFighter.Views.ConsoleApplicationBase.Properties;
 
-namespace ArenaFighter.ConsoleApplicationBase {
+namespace ArenaFighter.Views.ConsoleApplicationBase {
     public static class CommandLibrary {
-        public static readonly string CommandNamespace = "ArenaFighter.ConsoleApplicationBase.Commands";
+        public static readonly string CommandNamespace = "ArenaFighter.Views.ConsoleApplicationBase.Commands";
         public static Dictionary<string, CommandClassInfo> Content { get; }
 
         static CommandLibrary() {

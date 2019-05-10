@@ -18,5 +18,6 @@
     <PackageReference Include="System.Net.Http" Version="4.*"/>
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.*"/>
     <PackageReference Include="Humanizer.Core" Version="2.6.2"/>
+    <PackageReference Include="protobuf-net" Version="3.0.0-alpha.32"/>
   </ItemGroup>
 </Project>

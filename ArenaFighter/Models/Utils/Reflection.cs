@@ -103,7 +103,7 @@ namespace ArenaFighter.Models.Utils {
                         budgetForSlot = budgetTable[slot];
                     }
 
-                    selected[slot] = SelectBestEquipmentWithinBudget(budgetForSlot, slot);
+                    selected[slot] = SelectBestEquipmentWithinBudget(budgetForSlot, slot, receivingCharacter);
                 }
             }
             return selected;
@@ -111,7 +111,18 @@ namespace ArenaFighter.Models.Utils {
 
         public Equipment SelectBestEquipmentWithinBudget(int budget, Slot forSlot, BaseCharacter receivingCharacter = null) {
             //TODO: For Slot.Armor, try to get highest AC (taking into MaxDexBonus and Character DexMod) if receivingCharacter != null
+            // For Slot.MainHand, choose finesse if DexMod > StrMod
+            if (receivingCharacter != null) {
+                if (forSlot == Slot.Armor) {
+                    IEnumerable<Armor> armors = ((IEnumerable<Armor>)allEquipment[forSlot]).TakeWhile((e) => e.Price <= budget);
+                    return armors.First((e) => e.ArmorClass + Math.Min(e.MaxDexBonus, receivingCharacter.DexterityMod) == armors.Max((eq) => eq.ArmorClass + Math.Min(eq.MaxDexBonus, receivingCharacter.DexterityMod)));
+                } else if (forSlot == Slot.MainHand && receivingCharacter.DexterityMod > receivingCharacter.StrengthMod) {
+                    return (Equipment)((IEnumerable<Weapon>)allEquipment[forSlot]).Where((e) => e.Finesse).TakeWhile((e) => e.Price <= budget).Last();
+
+                }
+            }
             return allEquipment[forSlot].TakeWhile((e) => e.Price <= budget).Last();
+
         }
 
     }

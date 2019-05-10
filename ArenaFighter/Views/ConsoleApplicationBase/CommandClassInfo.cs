@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ArenaFighter.ConsoleApplicationBase {
+namespace ArenaFighter.Views.ConsoleApplicationBase {
     public class CommandClassInfo {
         public Assembly OwningAssembly { get; }
         public Dictionary<string, IEnumerable<ParameterInfo>> MethodDictionary { get; }

@@ -5,14 +5,14 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ArenaFighter.ConsoleApplicationBase {
-    class Program {
+namespace ArenaFighter.Views.ConsoleApplicationBase {
+    class ConsoleApplicationPrompt {
         static void Main(string[] args) {
             Console.Title = typeof(Program).Name;
             Run();
         }
 
-        static void Run() {
+        public static void Run() {
             AppState.SetState(State.RUNNING);
             while (AppState.GetState() > State.IDLE) {
                 var consoleInput = ReadFromConsole();
@@ -25,13 +25,12 @@ namespace ArenaFighter.ConsoleApplicationBase {
                     switch (cmd.Name) {
                         case "help":
                         case "?":
-                        case "ayuda":
                             WriteToConsole(BuildHelpMessage());
                             break;
                         case "exit":
-                        case "salir":
-                            WriteToConsole("Closing program...");
-                            return;
+                            AppState.SetState(State.IDLE);
+                            WriteToConsole("Exiting developer mode");
+                            break;
                         default:
                             // Execute the command:
                             string result = CommandHandler.Execute(cmd);
@@ -47,20 +46,20 @@ namespace ArenaFighter.ConsoleApplicationBase {
             }
         }
 
-        static void WriteToConsole(string message = "") {
+        public static void WriteToConsole(string message = "") {
             if (message.Length > 0) {
                 Console.WriteLine(message);
             }
         }
 
-        const string _readPrompt = "console> ";
+        private const string _readPrompt = "developer mode> ";
         public static string ReadFromConsole(string promptMessage = "") {
             // Show a prompt, and get input:
             Console.Write(_readPrompt + promptMessage);
             return Console.ReadLine();
         }
 
-        static string BuildHelpMessage(string library = null) {
+        public static string BuildHelpMessage(string library = null) {
             var sb = new StringBuilder("Commands: ");
             sb.AppendLine();
             foreach (var item in CommandLibrary.Content) {

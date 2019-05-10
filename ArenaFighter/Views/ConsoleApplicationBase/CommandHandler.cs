@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ArenaFighter.ConsoleApplicationBase {
+namespace ArenaFighter.Views.ConsoleApplicationBase {
     public static class CommandHandler {
         //static List<object> methodParameterValueList = new List<object>();
         //static IEnumerable<ParameterInfo> paramInfoList;

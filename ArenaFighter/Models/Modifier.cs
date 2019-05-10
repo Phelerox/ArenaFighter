@@ -42,8 +42,8 @@ namespace ArenaFighter.Models {
                     if (mod == 0)continue;
                     if (!firstMod)description += " ";
                     else firstMod = false;
-                    if (mod > 0)description += $"{a}: +{mod}";
-                    else if (mod < 0)description += description += $"{a}: {mod}";
+                    if (mod > 0)description += $"{a.Humanize(LetterCasing.Title)}: +{mod}";
+                    else if (mod < 0)description += description += $"{a.Humanize(LetterCasing.Title)}: {mod}";
                 }
                 description += ")";
             }
@@ -60,7 +60,7 @@ namespace ArenaFighter.Models {
     }
 
     public interface IDamageTaken : IOverrideModifier {
-        public dynamic DamageTaken(dynamic damage, DamageType damageType);
+        dynamic DamageTaken(dynamic damage, DamageType damageType);
     }
 
     public class HeavyArmorMaster : Feat, IDamageTaken {

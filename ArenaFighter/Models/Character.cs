@@ -26,9 +26,15 @@ namespace ArenaFighter.Models {
         AttackRollBonus = 102,
         DamageBonus = 103,
         InitiativeBonus = 104,
+        SavingThrowsBonus = 105,
     }
 
-    public abstract class BaseCharacter {
+    public abstract class BaseCharacter : IEquatable<BaseCharacter>, ICloneable {
+        private static long nextId = 0;
+        public readonly long id;
+        private readonly string initialName;
+        private bool alive = true;
+        public bool IsAlive { get { return alive; } }
         protected Dictionary<Genders, List<string>> nameCandidates = new Dictionary<Genders, List<string>> {
             [Genders.Male] = new List<string>() { "Joe", "Tormund" },
             [Genders.Female] = new List<string>() { "Anna", "Brienne" },
@@ -49,8 +55,25 @@ namespace ArenaFighter.Models {
 
         public bool Update(int days, int experienceGain) {
             agedDays += days;
-            experience += experienceGain * (1 + ((WisdomMod * 2 + IntelligenceMod) * 0.05));
-            return CanLevelUp();
+            Rest(days);
+            return ReceiveExperience(experienceGain);
+        }
+
+        public int Rest(int days = 1) {
+            int regainedHealth = 0;
+            for (int d = 0; d < days; d++) {
+                double restEffectiveness = DiceRoller.PickRandomDouble(new double[] { 0.05, 0.075, 0.10 });
+                int regainedToday = Math.Min((int)Math.Max(restEffectiveness * MaxHitPoints, 1), attributes[Attribute.DamageTaken]);
+                regainedHealth += regainedToday;
+                CurHitPoints += regainedToday;
+            }
+            return regainedHealth;
+        }
+
+        public bool ReceiveExperience(double experienceGain) {
+            double scaledGain = experienceGain * (1 + ((WisdomMod * 2 + IntelligenceMod) * 0.05));
+            experience += scaledGain;
+            return LevelUp() != null;
         }
 
         public bool CanLevelUp() {
@@ -58,10 +81,11 @@ namespace ArenaFighter.Models {
             return (current > threshold) ? true : false; //>= would have a risk of leveling up half an experience point too early
         }
 
-        public IDictionary<Attribute, int> LevelUp() {
+        public virtual IDictionary<Attribute, int> LevelUp() {
             if (CanLevelUp()) {
                 Level += 1;
                 var attributeIncreases = new Dictionary<Attribute, int>();
+                attributeIncreases[(Attribute)(DiceRoller.SixSidedDie() - 1)] = 1;
                 attributeIncreases[(Attribute)(DiceRoller.SixSidedDie() - 1)] = 1;
                 attributeIncreases[Attribute.MaxHitPoints] = HitDieType(false) + ConstitutionMod;
                 foreach (Attribute a in attributeIncreases.Keys) {
@@ -103,13 +127,76 @@ namespace ArenaFighter.Models {
         public string Name { get; set; }
         public Genders Gender { get; set; }
         public string GenderString { get { return Gender.ToFriendlyString(); } }
+        private double gold = 0;
+        public int Gold {
+            get { return (int)gold; }
+            set {
+                gold = (value * (1 + ((CharismaMod * 2 + IntelligenceMod) * 0.05)));
+            }
+        }
+        public int NumberOfRerolls { get; set; } = -1;
+        private IList<BaseCharacter> defeatedFoes = new List<BaseCharacter>();
+        public int Kills { get { return defeatedFoes.Count; } }
+        private int score = 0;
+        public int Score { get { return score; } }
 
+        public bool StillStanding(Battle battle) {
+            if (this.Equals(battle.Winner)) {
+                BaseCharacter defeatedEnemy = battle.Loser;
+                double power = defeatedEnemy.PowerEstimate;
+                double relativePower = defeatedEnemy.CalculateRelativePower(this);
+                double relativePowerFactor = 1;
+                int value = (int)(power + Math.Min(Math.Max(relativePower * relativePowerFactor * power, -power), power));
+                score += value;
+                if (Program.Debugging) {
+                    Console.WriteLine($"Value of defeating opponent: {value} | XP gain: {Math.Pow(value, 2) / 2000}");
+                }
+                ReceiveExperience(Math.Pow(value, 2) / 2000);
+                Gold += value;
+                defeatedFoes.Add(defeatedEnemy);
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        public string DeathSavingThrows() {
+            //Time for Death Saving Throws
+            string rolls = "Death Saving Throws!\n";
+            int succeededThrows = 0, failedThrows = 0;
+            int savingThrowsBonus = AddAllModifiers(Attribute.SavingThrowsBonus);
+            while (succeededThrows < 3 && failedThrows < 3) {
+                int roll = DiceRoller.TwentySidedDie();
+                rolls += $"Rolled {roll+savingThrowsBonus}" + (savingThrowsBonus > 0 ? $" ({roll}+{savingThrowsBonus})" : "");
+                if (10 <= roll + savingThrowsBonus) {
+                    succeededThrows++;
+                    rolls += ", which is at least 10. You now have " + "successful saving throw".ToQuantity(succeededThrows, ShowQuantityAs.Words) + "!\n";
+                } else {
+                    failedThrows++;
+                    rolls += ", which is less than 10. You now have " + "failed saving throw".ToQuantity(failedThrows, ShowQuantityAs.Words) + "!\n";
+                }
+            }
+            if (failedThrows >= 3) {
+                Name += " [DEAD]";
+                rolls += "\n<--------YOU DIED-------->\n\n";
+                alive = false;
+                return rolls;
+            } else {
+                rolls += "\n<------YOU SURVIVED------>\n\n";
+                if (typeof(Player).IsAssignableFrom(this.GetType())) {
+                    CurHitPoints = 1;
+                } else {
+                    CurHitPoints = MaxHitPoints;
+                }
+                return rolls;
+            }
+
+        }
         public ICollection<Modifier> Modifiers {
             get {
                 var set = new HashSet<Modifier>(otherModifiers) { };
                 set.UnionWith(Equipment.Values);
                 set.UnionWith(GetAllOverrideModifiers().Cast<Modifier>());
-                //Todo: add overrideModifiers
                 return set;
             }
         }
@@ -137,8 +224,8 @@ namespace ArenaFighter.Models {
             if (!IOverrideModifierSubType.GetTypeInfo().IsInterface || !IOverrideModifierSubType.GetTypeInfo().ImplementedInterfaces.Contains(typeof(IOverrideModifier))) {
                 throw new ArgumentException("IOverrideModifierSubtype must be an interface that implements IOverrideModifier!");
             }
-            ICollection<IOverrideModifier> existingSimilarModifiers;
-            if (overrideModifiers.TryGetValue(IOverrideModifierSubType, out existingSimilarModifiers)) {
+
+            if (overrideModifiers.TryGetValue(IOverrideModifierSubType, out ICollection<IOverrideModifier> existingSimilarModifiers)) {
                 existingSimilarModifiers.Add(modifier);
             } else {
                 existingSimilarModifiers = new HashSet<IOverrideModifier>();
@@ -269,9 +356,15 @@ namespace ArenaFighter.Models {
             get { return ToAbilityScoreModifier(Charisma); }
         }
 
-        public int CurHitPoints {
-            get { return MaxHitPoints - attributes[Attribute.DamageTaken]; }
-            set { attributes[Attribute.DamageTaken] = MaxHitPoints - value; }
+        private double damageTaken = 0;
+        public double DamageTaken {
+            get { return damageTaken; }
+            set { damageTaken = Math.Max(value, 0); }
+        }
+
+        public dynamic CurHitPoints {
+            get { return ((int)((double)MaxHitPoints - DamageTaken)); }
+            set { DamageTaken = (MaxHitPoints - value); }
         }
 
         public int MaxHitPoints {
@@ -286,7 +379,35 @@ namespace ArenaFighter.Models {
             get { return DexterityMod + AddAllModifiers(Attribute.InitiativeBonus); }
         }
 
+        public object Clone() {
+            return this.MemberwiseClone();
+        }
+
+        public bool Equals(BaseCharacter other) {
+            if (other == null) {
+                return false;
+            }
+            return id == other.id;
+        }
+        public override bool Equals(object obj) {
+            if (ReferenceEquals(null, obj))return false;
+            if (ReferenceEquals(this, obj))return true;
+            if (obj.GetType() != GetType())return false;
+            return Equals(obj as BaseCharacter);
+        }
+
+        public override int GetHashCode() {
+            unchecked {
+                var hashCode = 486187739;
+                hashCode = (hashCode * 397) ^ (int)id.GetHashCode();
+                var initialNameHashCode = !string.IsNullOrEmpty(initialName) ? initialName.GetHashCode() : 0;
+                hashCode = (hashCode * 397) ^ initialNameHashCode;
+                return hashCode;
+            }
+        }
+
         protected BaseCharacter(string name = null, Genders? gender = null, Race race = null) {
+            this.id = nextId++;
             Level = 1;
             if (race != null) {
                 Race = race;
@@ -305,17 +426,19 @@ namespace ArenaFighter.Models {
                 //Breakpoint
                 Name = nameCandidates[Gender].ElementAt(DiceRoller.Next(0, nameCandidates[Gender].Count));
             }
+            initialName = Name;
             GenerateAttributes();
             EquipRandomEquipment();
             ageInDaysAtStart = (ulong)DiceRoller.Next(365 * 15, 365 * 70);
         }
 
         public virtual void GenerateAttributes(int bonus = 0) {
+            NumberOfRerolls++;
             for (int a = 0; a < 6; a++) {
                 attributes[(Attribute)a] = DiceRoller.Roll4d6DropLowest() + bonus;
             }
 
-            attributes[Attribute.MaxHitPoints] = HitDieType(true) + HitDieType(false) + ConstitutionMod;
+            attributes[Attribute.MaxHitPoints] = HitDieType(true) + HitDieType(false) + ConstitutionMod * 2;
             return;
         }
 
@@ -343,7 +466,7 @@ namespace ArenaFighter.Models {
             bool finesse = weapon?.Finesse ?? false;
             bool versatile = weapon?.Versatile ?? false;
             Func<bool, int> damageDie = ((versatile && (Equipment.ContainsKey(Slot.OffHand) && Equipment[Slot.OffHand] != null) ?
-                DiceRoller.enlargeDie(weapon?.DamageDie) : weapon?.DamageDie) ?? DiceRoller.FourSidedDie);
+                DiceRoller.EnlargeDie(weapon?.DamageDie) : weapon?.DamageDie) ?? DiceRoller.FourSidedDie);
             return (finesse ? Math.Max(StrengthMod, DexterityMod) : StrengthMod) + (critical ? damageDie(rollMax) + damageDie(rollMax) : damageDie(rollMax)) + AddAllModifiers(Attribute.DamageBonus);
         }
 
@@ -354,8 +477,11 @@ namespace ArenaFighter.Models {
                     damage = overrideModifier.DamageTaken(damage, damageType);
                 }
             }
-            if (justKidding)return damage;
-            else CurHitPoints -= (int)damage;
+            if (justKidding) {
+                return damage;
+            } else {
+                CurHitPoints -= (int)damage;
+            }
             return damage;
         }
 
@@ -382,15 +508,15 @@ namespace ArenaFighter.Models {
             double enemyAverageDamage = enemy.DamageRoll(rollMax: true) - enemy.Weapon.DamageDie(true) + DiceRoller.averageRoll[enemy.Weapon.DamageDie];
             double expectedDamage = chanceOfHittingEnemy * enemy.ReceiveDamage(averageDamage, Weapon.DamageType, justKidding : true);
             double enemyExpectedDamage = enemyChanceOfHittingMe * ReceiveDamage(enemyAverageDamage, enemy.Weapon.DamageType, justKidding : true);
-            double expectedRoundsToKillEnemy = enemy.MaxHitPoints / expectedDamage;
-            double enemyExpectedRoundsToKillMe = MaxHitPoints / enemyExpectedDamage;
+            double expectedRoundsToKillEnemy = (enemy.MaxHitPoints / expectedDamage) / (ExtraAttacks + 1);
+            double enemyExpectedRoundsToKillMe = (MaxHitPoints / enemyExpectedDamage) / (enemy.ExtraAttacks + 1);
             double minInverse = Math.Min(1 / expectedRoundsToKillEnemy, 1 / enemyExpectedRoundsToKillMe);
             double maxInverse = Math.Max(1 / expectedRoundsToKillEnemy, 1 / enemyExpectedRoundsToKillMe);
             double normalizedInverse = (1 / expectedRoundsToKillEnemy) / minInverse;
             double enemyNormalizedInverse = (1 / enemyExpectedRoundsToKillMe) / minInverse;
             double maxNormalizedInverse = Math.Max(normalizedInverse, enemyNormalizedInverse);
             if (Program.Debugging) {
-                Console.WriteLine($"{enemy.Name} expected attackAttempts to kill me: {enemyExpectedRoundsToKillMe} \n {Name} expected attackAttempts to kill enemy: {expectedRoundsToKillEnemy}");
+                Console.WriteLine($"{enemy.Name} expected rounds to kill me: {enemyExpectedRoundsToKillMe} \n {Name} expected rounds to kill enemy: {expectedRoundsToKillEnemy}");
                 if (normalizedInverse > enemyNormalizedInverse) {
                     Console.WriteLine($"I'm {((maxNormalizedInverse - 1) * 100).ToString("n2")}% stronger.");
                 } else {
@@ -404,19 +530,10 @@ namespace ArenaFighter.Models {
             }
         }
 
-        protected virtual Tuple<double, int, int> SimulateFights(BaseCharacter enemy, int simulations = 1) {
-            double percentWon = 0.0;
-            int averageHealthLeft = 0;
-            int enemyAverageHealthLeft = 0;
-            //TODO: Fight
-            return Tuple.Create(percentWon, averageHealthLeft, enemyAverageHealthLeft);
-        }
-
         public override string ToString() {
             string description = Name + "\n";
             Tuple<int, int> ageYearsAndDays = Age;
-            description += $"{GenderString} {Race.ToString()} aged {ageYearsAndDays.Item1} years and {ageYearsAndDays.Item2} days.\n";
-            ////TODO: gold
+            description += $"{GenderString} {Race.ToString()} aged {ageYearsAndDays.Item1} years and {ageYearsAndDays.Item2} days.\nHas {Gold} gold pieces.\n";
             if (attributes.Count > 0) {
                 var attributesToDisplay = new Dictionary<Attribute, int>(attributes);
                 attributesToDisplay[Attribute.ArmorClass] = ArmorClassFromArmor;
@@ -449,15 +566,92 @@ namespace ArenaFighter.Models {
                     description += $"{m}\n";
                 }
             }
-            description += $"Estimated Combat Prowess: {PowerEstimate}";
+            description += $"Estimated Combat Prowess: {(int)PowerEstimate}";
             return description;
         }
+
+        public string CompareWithAsString(BaseCharacter enemy) {
+            string description = "Arena Fight!\n";
+            description += Name + $", {GenderString} {Race.ToString()}\n vs \n" + enemy.Name + $", {enemy.GenderString} {enemy.Race.ToString()}\n";
+            Tuple<int, int> ageYearsAndDays = Age;
+            Tuple<int, int> enemyAgeYearsAndDays = enemy.Age;
+            description += $"Age: {ageYearsAndDays.Item1} years and {ageYearsAndDays.Item2} days.\t\t" + $"Age: { enemyAgeYearsAndDays.Item1 } years and { enemyAgeYearsAndDays.Item2 } days.\n";
+            description += $"Has { Gold } gold pieces." + $"\t\tHas {enemy.Gold} gold pieces.\n";
+            if (attributes.Count > 0 && enemy.attributes.Count > 0) {
+                var attributesToDisplay = new Dictionary<Attribute, int>(attributes);
+                attributesToDisplay[Attribute.ArmorClass] = ArmorClassFromArmor;
+                var enemyAttributesToDisplay = new Dictionary<Attribute, int>(enemy.attributes);
+                enemyAttributesToDisplay[Attribute.ArmorClass] = ArmorClassFromArmor;
+                foreach (Attribute a in attributesToDisplay.Keys) {
+                    int totalModifier = AddAllModifiers(a);
+                    int enemyTotalModifier = enemy.AddAllModifiers(a);
+                    string leftSide = $"{attributesToDisplay[a] + totalModifier }";
+                    if (totalModifier > 0)leftSide += $" ({ attributesToDisplay[a] } + { totalModifier })";
+                    else if (totalModifier < 0)leftSide += $" ({ attributesToDisplay[a] } - { totalModifier })";
+                    string attributeName = $"{a}";
+                    string rightSide = $"{enemyAttributesToDisplay[a] + enemyTotalModifier}";
+                    if (enemyTotalModifier > 0)rightSide += $" ({ enemyAttributesToDisplay[a] } + { enemyTotalModifier })";
+                    else if (enemyTotalModifier < 0)rightSide += $" ({ enemyAttributesToDisplay[a] } - { enemyTotalModifier })";
+                    string leftPadding = "".PadLeft(32 - leftSide.Length - attributeName.Length / 2);
+                    string rightPadding = "".PadLeft(32 - rightSide.Length - attributeName.Length / 2);
+                    description += leftSide + leftPadding + attributeName + rightPadding + rightSide;
+                    description += "\n";
+                }
+            }
+            description += $"\nEquipment and Modifiers of {Name}\n";
+            if (Modifiers.Count > 0) {
+                IList<Modifier> alreadyProcessed = new List<Modifier>();
+                alreadyProcessed.Add(Race);
+                if (Equipment.Count > 0) {
+                    foreach (Slot s in Enum.GetValues(typeof(Slot))) {
+                        description += $" { s.ToString().Humanize(LetterCasing.Title) }: ";
+                        if (Equipment.ContainsKey(s) && (Equipment[s] != null)) {
+                            Equipment e = Equipment[s];
+                            alreadyProcessed.Add(e);
+                            description += $" { e }";
+                        } else if (s == Slot.OffHand && Equipment.ContainsKey(Slot.MainHand) && ((Weapon)Equipment[Slot.MainHand]).TwoHanded) {
+                            description += $"holding { Equipment[Slot.MainHand].Name }";
+                        } else description += "empty ";
+                        description += "\n ";
+                    }
+                }
+                foreach (Modifier m in Modifiers) {
+                    if (alreadyProcessed.Contains(m))continue;
+                    description += $" { m }\n ";
+                }
+            }
+            description += $"\nEquipment and Modifiers of {enemy.Name}\n";
+            if (enemy.Modifiers.Count > 0) {
+                IList<Modifier> alreadyProcessed = new List<Modifier>();
+                alreadyProcessed.Add(enemy.Race);
+                if (enemy.Equipment.Count > 0) {
+                    foreach (Slot s in Enum.GetValues(typeof(Slot))) {
+                        description += $" { s.ToString().Humanize(LetterCasing.Title) }: ";
+                        if (enemy.Equipment.ContainsKey(s) && (enemy.Equipment[s] != null)) {
+                            Equipment e = enemy.Equipment[s];
+                            alreadyProcessed.Add(e);
+                            description += $" { e }";
+                        } else if (s == Slot.OffHand && enemy.Equipment.ContainsKey(Slot.MainHand) && ((Weapon)enemy.Equipment[Slot.MainHand]).TwoHanded) {
+                            description += $"holding { enemy.Equipment[Slot.MainHand].Name }";
+                        } else description += "empty ";
+                        description += "\n ";
+                    }
+                }
+                foreach (Modifier m in enemy.Modifiers) {
+                    if (alreadyProcessed.Contains(m))continue;
+                    description += $" { m }\n ";
+                }
+            }
+            description += $"Estimated Combat Prowess: {(int)PowerEstimate}";
+
+            return description;
+        }
+
     }
 
     public class Player : BaseCharacter {
         public Player(string name, Genders gender, Race race, bool overrideStats = false) : base(name, gender, race) {
-            EquipBestEquipmentWithinBudget(budgetPerSlot: 350);
-            //Remove, it's just for debug purposes
+            EquipBestEquipmentWithinBudget(budgetPerSlot: 650);
             if (overrideStats) {
                 EquipItem(new GreatAxe());
                 EquipItem(new LoricaSquamata());
@@ -471,6 +665,18 @@ namespace ArenaFighter.Models {
                 attributes[Attribute.Charisma] = 10;
                 attributes[Attribute.MaxHitPoints] = HitDieType(true) + ConstitutionMod + ConstitutionMod;
             }
+        }
+
+        public override IDictionary<Attribute, int> LevelUp() {
+            var attributeIncreases = base.LevelUp();
+            if (attributeIncreases != null) {
+                Console.WriteLine($"Reached Level { Level }!");
+                foreach (Attribute a in attributeIncreases.Keys) {
+                    Console.WriteLine($" { a } increased by { attributeIncreases[a] }, reaching { attributes[a] }.");
+                }
+                return attributeIncreases;
+            }
+            return null;
         }
     }
 
@@ -499,7 +705,7 @@ namespace ArenaFighter.Models {
     public class MeasureStickJoe : BaseCharacter {
         public static MeasureStickJoe Instance { get; } = new MeasureStickJoe();
 
-        public MeasureStickJoe() : base("MeasureStick Joe", Genders.Male, new MountainDwarf()) {
+        public MeasureStickJoe() : base("MeasureStick Joe ", Genders.Male, new MountainDwarf()) {
             EquipItem(new GreatAxe());
             EquipItem(new LoricaSquamata());
 
@@ -512,4 +718,5 @@ namespace ArenaFighter.Models {
             attributes[Attribute.MaxHitPoints] = HitDieType(true) + ConstitutionMod + ConstitutionMod;
         }
     }
+
 }

@@ -5,9 +5,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-using ArenaFighter.ConsoleApplicationBase.Commands;
+using ArenaFighter.Views.ConsoleApplicationBase.Commands;
 
-namespace ArenaFighter.ConsoleApplicationBase {
+namespace ArenaFighter.Views.ConsoleApplicationBase {
     public class ConsoleCommand {
         public ConsoleCommand(string input) {
             // Ugly regex to split string on spaces, but preserve quoted text intact:

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ArenaFighter.ConsoleApplicationBase {
+namespace ArenaFighter.Views.ConsoleApplicationBase {
     public static class AppState {
         static State _state;
 

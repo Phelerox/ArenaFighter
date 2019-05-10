@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -18,12 +18,12 @@ namespace ArenaFighter.Models.Utils {
         };
 
         public static Func<bool, int>[] dieSizes = new Func<bool, int>[] { CoinFlip, ThreeSidedDie, FourSidedDie, SixSidedDie, EightSidedDie, TenSidedDie, TwelveSidedDie };
-        public static Func<bool, int> enlargeDie(Func<bool, int> die) {
+        public static Func<bool, int> EnlargeDie(Func<bool, int> die) {
             int i = Array.FindIndex<Func<bool, int>>(dieSizes, d => d.Equals(die));
             if (i == -1 || i == (dieSizes.Length - 1))return die;
             return dieSizes[i + 1];
         }
-        public static Func<bool, int> shrinkDie(Func<bool, int> die) {
+        public static Func<bool, int> ShrinkDie(Func<bool, int> die) {
             int i = Array.FindIndex<Func<bool, int>>(dieSizes, d => d.Equals(die));
             if (i == -1 || i == 0)return die;
             return dieSizes[i - 1];
@@ -120,6 +120,10 @@ namespace ArenaFighter.Models.Utils {
                 ui = GetRandomUInt();
             } while (ui >= upperBound);
             return (int)(minValue + (ui % diff));
+        }
+
+        public static double PickRandomDouble(double[] options) {
+            return options[DiceRoller.Next(0, options.Length)];
         }
 
         private static uint GetRandomUInt() {

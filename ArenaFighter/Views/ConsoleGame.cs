@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -8,43 +9,103 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
 
-using ArenaFighter.ConsoleApplicationBase;
+using ArenaFighter.Models;
 using ArenaFighter.Models.Utils;
 using ArenaFighter.Presenters;
+using ArenaFighter.Views.ConsoleApplicationBase;
 
 using Humanizer;
+
+using ProtoBuf;
+using ProtoBuf.Meta;
 
 namespace ArenaFighter.Views {
     class ConsoleGame : IView {
         private Presenter presenter;
-        private ArenaFighter.Models.Player player;
+        private ArenaFighter.Models.Player Player { get { return presenter.Player; } }
 
-        private Menu<Genders> menuCharCreationChooseGender = new Menu<Genders>(
-            "What is your characters gender?",
-            new Dictionary<string, Tuple<string, Genders>>() {
-                ["m"] = new Tuple<string, Genders>("Male", Genders.Male), ["f"] = new Tuple<string, Genders>("Female", Genders.Female), ["o"] = new Tuple<string, Genders>("Non-Binary", Genders.Non_Binary),
-            }
-        );
+        private Menu<Genders> menuCreationChooseGender = new MenuOptions<Genders>("What is your characters gender?")
+            .AddOption("m", "Male", Genders.Male)
+            .AddOption("f", "Female", Genders.Female)
+            .AddOption("n", "Non-Binary", Genders.Non_Binary).MenuFactory();
+        private Menu<bool> menuYesNo = new MenuOptions<bool>("Would you like to Proceed?")
+            .AddOption("y", "Yes", true)
+            .AddOption("n", "No", false).MenuFactory();
 
         //string description, Dictionary<string, Tuple<string, Func<string>>> options
 
         public ConsoleGame() {
-            presenter = Presenter.Instance(this);
+            presenter = Presenter.Instance;
+            presenter.View = this;
+            if (Console.WindowWidth < 90) {
+                try {
+                    Console.SetWindowSize(Math.Min(90, Console.LargestWindowWidth), Math.Min(Console.LargestWindowHeight, 60));
+                } catch (System.PlatformNotSupportedException e) {
+                    if (Program.Debugging) {
+                        Console.WriteLine($"Exception caught: Can't set WindowSize! {e}");
+                    }
+
+                }
+
+            }
             Console.Title = "Dungeons & Gladiators";
             CharacterCreation();
             GameLoop();
+            AskUserForString("Bye!");
         }
 
         private void GameLoop() {
-            RunDeveloperMode();
+            do {
+                WriteCenteredLines(Player.CompareWithAsString(presenter.NextOpponent), null);
+                string deathSavingThrows = presenter.NextArenaEvent();
+                WriteCenteredLines(presenter.PastBattles.Last().Item3);
+                if (deathSavingThrows != null) {
+                    WriteCenteredLines(deathSavingThrows, null);
+                }
+            } while (!presenter.GameOver && menuYesNo.Ask("Fight another battle or retire?"));
+            if (presenter.GameOver) {
+                Retire();
+            } else if (menuYesNo.Ask("Are you sure you want to retire?")) {
+                Retire();
+            } else {
+                GameLoop();
+            }
         }
 
         private void CharacterCreation() {;
             ArenaFighter.Models.Race race = new ArenaFighter.Models.MountainDwarf();
-            Genders gender = menuCharCreationChooseGender.Ask();
+            Genders gender = menuCreationChooseGender.Ask();
             string name = AskUserForString($"What is {Language.PossessiveAdjective(gender)} name? ");
-            player = presenter.CreateCharacter(name, gender, race);
-            Console.WriteLine(player);
+            presenter.CreateCharacterAction(name, gender, race);
+            WriteCenteredLines(Player.ToString());
+            string prompt = "Proceed from character creation?";
+            while (!menuYesNo.Ask(prompt)) {
+                presenter.RerollCharacterAction();
+                WriteCenteredLines(Player.ToString());
+                prompt = $"Proceed from character creation? (You have rerolled {Player.NumberOfRerolls} times)";
+            }
+
+        }
+
+        private void ReviewCombatLogs() {
+            IList<Tuple<BaseCharacter, Player, string>> battles = presenter.PastBattles;
+            int reviewingBattle = battles.Count;
+            string prompt = "Would you like to go through your combat history?";
+            while (--reviewingBattle >= 0 && menuYesNo.Ask(prompt)) {
+                WriteCenteredLines($"Reviewing Battle #{reviewingBattle+1}", null, "->", "<-");
+                WriteCenteredLines(battles[reviewingBattle].Item2.CompareWithAsString(battles[reviewingBattle].Item1), null);
+                WriteCenteredLines(battles[reviewingBattle].Item3);
+                WriteCenteredLines($"End of Battle #{reviewingBattle+1}", null, "->", "<-");
+                prompt = $"Review Battle #{reviewingBattle}?";
+            }
+        }
+
+        private void Retire() {
+            string retireMessage = presenter.RetireCampaignAction();
+            WriteCenteredLines("GAME OVER", null, "->", "<-");
+            WriteCenteredLines(retireMessage, onlyLinesContaining : null);
+            WriteCenteredLines("GAME OVER", null, "->", "<-");
+            ReviewCombatLogs();
 
         }
 
@@ -53,69 +114,33 @@ namespace ArenaFighter.Views {
             return Console.ReadLine();
         }
 
+        public bool SaveGame(string filename = null) {
+            if (filename == null)filename = $"{Player.Name}.sav";
+            return false;
+        }
+
+        public bool LoadGame(string filename = null) { //TODO: make things serializable with protobuf-net
+            if (filename == null)filename = $"{Player.Name}.sav";
+            return false;
+        }
+
         public void RunDeveloperMode() {
-            AppState.SetState(State.RUNNING);
-            while (AppState.GetState() > State.IDLE) {
-                var consoleInput = ReadFromConsole();
-                if (string.IsNullOrWhiteSpace(consoleInput))continue;
+            ConsoleApplicationPrompt.Run();
+        }
 
-                try {
-                    // Create a ConsoleCommand instance:
-                    var cmd = new ConsoleCommand(consoleInput);
-
-                    switch (cmd.Name) {
-                        case "help":
-                        case "?":
-                            WriteToConsole(BuildHelpMessage());
-                            break;
-                        case "exit":
-                            AppState.SetState(State.IDLE);
-                            WriteToConsole("Exiting developer mode");
-                            break;
-                        default:
-                            // Execute the command:
-                            string result = CommandHandler.Execute(cmd);
-
-                            // Write out the result:
-                            WriteToConsole(result);
-                            break;
+        public static void WriteCenteredLines(string output, string onlyLinesContaining = "\u200B", string leftPadding = " ", string rightPadding = " ", string separator = " ") {
+            Console.SetCursorPosition(0, Console.CursorTop);
+            foreach (string line in output.Split('\n')) {
+                int paddingRequired = Math.Max(Console.WindowWidth - line.Length, 0);
+                if (onlyLinesContaining != null) {
+                    if (!line.Contains(onlyLinesContaining)) {
+                        Console.WriteLine(line);
+                        continue;
                     }
-                } catch (Exception ex) {
-                    // OOPS! Something went wrong - Write out the problem:
-                    WriteToConsole(ex.Message);
+                    paddingRequired = Math.Max(Console.WindowWidth - line.Length - 1, 0);
                 }
+                Console.WriteLine(Language.PadLines(line, paddingRequired, leftPadding, rightPadding, separator));
             }
-        }
-
-        static void WriteToConsole(string message = "") {
-            if (message.Length > 0) {
-                Console.WriteLine(message);
-            }
-        }
-
-        const string _readPrompt = "developer mode> ";
-        public static string ReadFromConsole(string promptMessage = "") {
-            // Show a prompt, and get input:
-            Console.Write(_readPrompt + promptMessage);
-            return Console.ReadLine();
-        }
-
-        static string BuildHelpMessage(string library = null) {
-            var sb = new StringBuilder("Commands: ");
-            sb.AppendLine();
-            foreach (var item in CommandLibrary.Content) {
-                if (library != null && item.Key != library)
-                    continue;
-                foreach (var cmd in item.Value.MethodDictionary) {
-                    sb.Append(ConsoleFormatting.Indent(1));
-                    sb.Append(item.Key);
-                    sb.Append(".");
-                    sb.Append(cmd.Key);
-                    sb.AppendLine();
-                }
-
-            }
-            return sb.ToString();
         }
     }
 }
